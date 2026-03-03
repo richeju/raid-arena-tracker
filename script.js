@@ -318,13 +318,17 @@ function attachTeamAutocomplete(input) {
     const currentValue = input.value;
     const selectedChampion = titleCase(currentValue.trim());
 
-    if (
-      previousValue.includes(',')
-      && !currentValue.includes(',')
-      && champions.includes(selectedChampion)
-    ) {
-      const prefix = previousValue.slice(0, previousValue.lastIndexOf(',') + 1).trim();
-      input.value = `${prefix}, ${selectedChampion}`.replace(/^,\s*/, '');
+    if (previousValue.includes(',') && champions.includes(selectedChampion)) {
+      const lastCommaIndex = previousValue.lastIndexOf(',');
+      const prefixTokens = previousValue
+        .slice(0, lastCommaIndex)
+        .split(',')
+        .map((token) => titleCase(token.trim()))
+        .filter(Boolean);
+
+      if (prefixTokens.length) {
+        input.value = [...prefixTokens, selectedChampion].join(', ');
+      }
     }
 
     input.dataset.prevValue = input.value;
