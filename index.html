@@ -29,34 +29,31 @@
         <h2 id="add-fight-title" data-i18n="form.title">Ajouter combat</h2>
         <form id="fight-form" novalidate>
           <div class="form-grid">
-            <label>
-              <span data-i18n="form.playerTeamLabel">Team joueur (1 à 4 champions)</span>
-              <input
-                type="text"
-                id="player-team"
-                required
-                list="champion-options"
-                placeholder="Arbiter, Duchess Lilitu, Mithrala, Rotos"
-                data-i18n-placeholder="form.playerTeamPlaceholder"
-              />
+            <fieldset class="team-fieldset">
+              <legend data-i18n="form.playerTeamLabel">Team joueur (1 à 4 champions)</legend>
+              <div class="team-slots" id="player-team-slots">
+                <input type="text" id="player-slot-1" list="champion-options" placeholder="Slot 1" aria-label="Player slot 1" />
+                <input type="text" id="player-slot-2" list="champion-options" placeholder="Slot 2" aria-label="Player slot 2" />
+                <input type="text" id="player-slot-3" list="champion-options" placeholder="Slot 3" aria-label="Player slot 3" />
+                <input type="text" id="player-slot-4" list="champion-options" placeholder="Slot 4" aria-label="Player slot 4" />
+              </div>
               <div class="inline-option">
                 <label class="checkbox-label">
                   <input type="checkbox" id="lock-player-team" />
                   <span data-i18n="form.lockTeam">Verrouiller mon équipe (réutilisée automatiquement)</span>
                 </label>
               </div>
-            </label>
+            </fieldset>
 
-            <label>
-              <span data-i18n="form.opponentTeamLabel">Team adverse (optionnel, 1 à 4)</span>
-              <input
-                type="text"
-                id="opponent-team"
-                list="champion-options"
-                placeholder="Siphi, Rotos"
-                data-i18n-placeholder="form.opponentTeamPlaceholder"
-              />
-            </label>
+            <fieldset class="team-fieldset">
+              <legend data-i18n="form.opponentTeamLabel">Team adverse (optionnel, 1 à 4)</legend>
+              <div class="team-slots" id="opponent-team-slots">
+                <input type="text" id="opponent-slot-1" list="champion-options" placeholder="Slot 1" aria-label="Opponent slot 1" />
+                <input type="text" id="opponent-slot-2" list="champion-options" placeholder="Slot 2" aria-label="Opponent slot 2" />
+                <input type="text" id="opponent-slot-3" list="champion-options" placeholder="Slot 3" aria-label="Opponent slot 3" />
+                <input type="text" id="opponent-slot-4" list="champion-options" placeholder="Slot 4" aria-label="Opponent slot 4" />
+              </div>
+            </fieldset>
           </div>
 
           <fieldset class="radio-group">

@@ -7,8 +7,8 @@ const PLAYER_TEAM_LOCK_KEY = 'raid_arena_player_team_lock';
 const LANGUAGE_KEY = 'raid_arena_language';
 
 const form = document.getElementById('fight-form');
-const playerTeamInput = document.getElementById('player-team');
-const opponentTeamInput = document.getElementById('opponent-team');
+const playerTeamSlots = [1, 2, 3, 4].map((slot) => document.getElementById(`player-slot-${slot}`));
+const opponentTeamSlots = [1, 2, 3, 4].map((slot) => document.getElementById(`opponent-slot-${slot}`));
 const lockPlayerTeamInput = document.getElementById('lock-player-team');
 const formError = document.getElementById('form-error');
 const championOptions = document.getElementById('champion-options');
@@ -120,14 +120,8 @@ function titleCase(value) {
     .join(' ');
 }
 
-function parseTeam(input) {
-  if (!input.trim()) {
-    return [];
-  }
-  return input
-    .split(',')
-    .map((name) => titleCase(name.trim()))
-    .filter(Boolean);
+function parseTeamFromSlots(inputs) {
+  return inputs.map((input) => titleCase(input.value.trim())).filter(Boolean);
 }
 
 function validateTeam(team, label, required) {
@@ -282,13 +276,10 @@ function savePlayerTeamLock(lockData) {
   localStorage.setItem(PLAYER_TEAM_LOCK_KEY, JSON.stringify(lockData));
 }
 
-function teamToInputValue(team) {
-  return team.map(titleCase).filter(Boolean).join(', ');
-}
-
-function getCurrentChampionToken(rawInputValue) {
-  const parts = rawInputValue.split(',');
-  return parts.length ? parts[parts.length - 1].trim() : rawInputValue.trim();
+function fillTeamSlots(inputs, team) {
+  inputs.forEach((input, index) => {
+    input.value = team[index] || '';
+  });
 }
 
 function renderChampionOptions(champions, token = '') {
@@ -304,35 +295,18 @@ function renderChampionOptions(champions, token = '') {
 }
 
 function attachTeamAutocomplete(input) {
-  input.dataset.prevValue = input.value;
-
   input.addEventListener('focus', () => {
     const champions = loadChampionPool().sort((a, b) => a.localeCompare(b));
-    renderChampionOptions(champions, getCurrentChampionToken(input.value));
-    input.dataset.prevValue = input.value;
+    renderChampionOptions(champions, input.value);
   });
 
   input.addEventListener('input', () => {
     const champions = loadChampionPool().sort((a, b) => a.localeCompare(b));
-    const previousValue = input.dataset.prevValue || '';
-    const currentValue = input.value;
-    const selectedChampion = titleCase(currentValue.trim());
+    renderChampionOptions(champions, input.value);
+  });
 
-    if (previousValue.includes(',') && champions.includes(selectedChampion)) {
-      const lastCommaIndex = previousValue.lastIndexOf(',');
-      const prefixTokens = previousValue
-        .slice(0, lastCommaIndex)
-        .split(',')
-        .map((token) => titleCase(token.trim()))
-        .filter(Boolean);
-
-      if (prefixTokens.length) {
-        input.value = [...prefixTokens, selectedChampion].join(', ');
-      }
-    }
-
-    input.dataset.prevValue = input.value;
-    renderChampionOptions(champions, getCurrentChampionToken(input.value));
+  input.addEventListener('change', () => {
+    input.value = titleCase(input.value.trim());
   });
 }
 
@@ -655,12 +629,10 @@ form.addEventListener('submit', (event) => {
 
   try {
     const lockData = loadPlayerTeamLock();
-    const playerTeam = lockData.locked ? lockData.team : parseTeam(playerTeamInput.value);
-    const opponentTeam = parseTeam(opponentTeamInput.value);
+    const playerTeam = lockData.locked ? lockData.team : parseTeamFromSlots(playerTeamSlots);
+    const opponentTeam = parseTeamFromSlots(opponentTeamSlots);
     validateTeam(playerTeam, t('messages.playerTeam'), true);
-    if (opponentTeamInput.value.trim()) {
-      validateTeam(opponentTeam, t('stats.opponentTeam'), true);
-    }
+    validateTeam(opponentTeam, t('stats.opponentTeam'), false);
 
 
     const winChoice = form.querySelector('input[name="win"]:checked');
@@ -684,8 +656,10 @@ form.addEventListener('submit', (event) => {
     const refreshedLockData = loadPlayerTeamLock();
     if (refreshedLockData.locked && refreshedLockData.team.length) {
       lockPlayerTeamInput.checked = true;
-      playerTeamInput.value = teamToInputValue(refreshedLockData.team);
-      playerTeamInput.readOnly = true;
+      fillTeamSlots(playerTeamSlots, refreshedLockData.team);
+      playerTeamSlots.forEach((slot) => {
+        slot.readOnly = true;
+      });
     }
 
     renderAllStats();
@@ -699,50 +673,57 @@ lockPlayerTeamInput.addEventListener('change', () => {
 
   if (!lockPlayerTeamInput.checked) {
     savePlayerTeamLock({ locked: false, team: [] });
-    playerTeamInput.readOnly = false;
+    playerTeamSlots.forEach((slot) => {
+      slot.readOnly = false;
+    });
     return;
   }
 
   try {
-    const team = parseTeam(playerTeamInput.value);
+    const team = parseTeamFromSlots(playerTeamSlots);
     validateTeam(team, t('messages.playerTeam'), true);
     const normalizedTeam = team.map(titleCase);
     savePlayerTeamLock({ locked: true, team: normalizedTeam });
-    playerTeamInput.value = teamToInputValue(normalizedTeam);
-    playerTeamInput.readOnly = true;
+    fillTeamSlots(playerTeamSlots, normalizedTeam);
+    playerTeamSlots.forEach((slot) => {
+      slot.readOnly = true;
+    });
   } catch (error) {
     lockPlayerTeamInput.checked = false;
     formError.textContent = t('messages.lockImpossible', { error: error.message });
   }
 });
 
-playerTeamInput.addEventListener('blur', () => {
-  if (playerTeamInput.readOnly) {
-    return;
-  }
+[...playerTeamSlots, ...opponentTeamSlots].forEach((slot) => {
+  slot.addEventListener('blur', () => {
+    if (slot.readOnly) {
+      return;
+    }
+    slot.value = titleCase(slot.value.trim());
+  });
 
-  const normalizedTeam = parseTeam(playerTeamInput.value);
-  playerTeamInput.value = teamToInputValue(normalizedTeam);
+  attachTeamAutocomplete(slot);
 });
-
-attachTeamAutocomplete(playerTeamInput);
-attachTeamAutocomplete(opponentTeamInput);
 
 const initialLockData = loadPlayerTeamLock();
 if (initialLockData.locked && initialLockData.team.length) {
   lockPlayerTeamInput.checked = true;
-  playerTeamInput.value = teamToInputValue(initialLockData.team);
-  playerTeamInput.readOnly = true;
+  fillTeamSlots(playerTeamSlots, initialLockData.team);
+  playerTeamSlots.forEach((slot) => {
+    slot.readOnly = true;
+  });
 }
 
-[playerTeamInput, opponentTeamInput].forEach((input) => {
-  input.addEventListener('change', () => {
-    const team = parseTeam(input.value);
-    if (!team.length) {
-      return;
-    }
-    upsertChampionPoolFromTeams([team]);
-    renderChampionSuggestions(loadFights());
+[playerTeamSlots, opponentTeamSlots].forEach((teamSlots) => {
+  teamSlots.forEach((input) => {
+    input.addEventListener('change', () => {
+      const team = parseTeamFromSlots(teamSlots);
+      if (!team.length) {
+        return;
+      }
+      upsertChampionPoolFromTeams([team]);
+      renderChampionSuggestions(loadFights());
+    });
   });
 });
 
