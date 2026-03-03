@@ -2,6 +2,7 @@ const STORAGE_KEY = 'raid_arena_fights';
 const BACKUP_DB_NAME = 'raid_arena_tracker_backup';
 const BACKUP_STORE_NAME = 'snapshots';
 const BACKUP_KEY = 'latest';
+const CHAMPION_POOL_KEY = 'raid_arena_champion_pool';
 
 const form = document.getElementById('fight-form');
 const playerTeamInput = document.getElementById('player-team');
@@ -9,6 +10,7 @@ const opponentTeamInput = document.getElementById('opponent-team');
 const playerRankInput = document.getElementById('player-rank');
 const opponentRankInput = document.getElementById('opponent-rank');
 const formError = document.getElementById('form-error');
+const championOptions = document.getElementById('champion-options');
 const exportBtn = document.getElementById('export-btn');
 const importFileInput = document.getElementById('import-file');
 
@@ -133,6 +135,41 @@ function loadFights() {
   } catch {
     return [];
   }
+}
+
+
+function loadChampionPool() {
+  try {
+    const raw = localStorage.getItem(CHAMPION_POOL_KEY);
+    if (!raw) {
+      return [];
+    }
+
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) {
+      return [];
+    }
+
+    return parsed.map(titleCase).filter(Boolean);
+  } catch {
+    return [];
+  }
+}
+
+function saveChampionPool(champions) {
+  localStorage.setItem(CHAMPION_POOL_KEY, JSON.stringify(champions));
+}
+
+function upsertChampionPoolFromTeams(teams) {
+  const existing = new Set(loadChampionPool());
+
+  teams
+    .flat()
+    .map(titleCase)
+    .filter(Boolean)
+    .forEach((champion) => existing.add(champion));
+
+  saveChampionPool([...existing].sort((a, b) => a.localeCompare(b)));
 }
 
 function saveFights(fights) {
@@ -411,8 +448,29 @@ function renderRankStats(fights) {
   `;
 }
 
+function renderChampionSuggestions(fights) {
+  const champions = new Set(loadChampionPool());
+
+  fights.forEach((fight) => {
+    [...(fight.player_team || []), ...(fight.opponent_team || [])]
+      .map(titleCase)
+      .filter(Boolean)
+      .forEach((champion) => champions.add(champion));
+  });
+
+  const sortedChampions = [...champions].sort((a, b) => a.localeCompare(b));
+  saveChampionPool(sortedChampions);
+
+  const optionsHtml = sortedChampions
+    .map((champion) => `<option value="${champion}"></option>`)
+    .join('');
+
+  championOptions.innerHTML = optionsHtml;
+}
+
 function renderAllStats() {
   const fights = loadFights();
+  renderChampionSuggestions(fights);
   renderGlobalStats(fights);
   renderBestTeams(fights);
   renderSynergies(fights);
@@ -441,6 +499,8 @@ form.addEventListener('submit', (event) => {
       throw new Error('Indique si le combat est une victoire ou une défaite.');
     }
 
+    upsertChampionPoolFromTeams([playerTeam, opponentTeam]);
+
     const fights = loadFights();
     fights.push({
       timestamp: Date.now(),
@@ -457,6 +517,17 @@ form.addEventListener('submit', (event) => {
   } catch (error) {
     formError.textContent = error.message;
   }
+});
+
+[playerTeamInput, opponentTeamInput].forEach((input) => {
+  input.addEventListener('change', () => {
+    const team = parseTeam(input.value);
+    if (!team.length) {
+      return;
+    }
+    upsertChampionPoolFromTeams([team]);
+    renderChampionSuggestions(loadFights());
+  });
 });
 
 exportBtn.addEventListener('click', () => {
