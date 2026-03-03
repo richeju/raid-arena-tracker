@@ -9,8 +9,6 @@ const LANGUAGE_KEY = 'raid_arena_language';
 const form = document.getElementById('fight-form');
 const playerTeamInput = document.getElementById('player-team');
 const opponentTeamInput = document.getElementById('opponent-team');
-const playerRankInput = document.getElementById('player-rank');
-const opponentRankInput = document.getElementById('opponent-rank');
 const lockPlayerTeamInput = document.getElementById('lock-player-team');
 const formError = document.getElementById('form-error');
 const championOptions = document.getElementById('champion-options');
@@ -27,7 +25,6 @@ const translations = {
     form: {
       title: 'Ajouter combat', playerTeamLabel: 'Team joueur (1 à 4 champions)', playerTeamPlaceholder: 'Arbiter, Duchess Lilitu, Mithrala, Rotos',
       lockTeam: 'Verrouiller mon équipe (réutilisée automatiquement)', opponentTeamLabel: 'Team adverse (optionnel, 1 à 4)', opponentTeamPlaceholder: 'Siphi, Rotos',
-      playerRankLabel: 'Rank joueur', playerRankPlaceholder: 'G3, Plat, S1, B4', opponentRankLabel: 'Rank adverse (optionnel)', opponentRankPlaceholder: 'G5, Plat',
       winLegend: 'Victoire ?', submit: 'Ajouter'
     },
     common: { yes: 'Oui', no: 'Non', na: 'N/A', notEnoughData: 'Pas assez de données.' },
@@ -41,7 +38,7 @@ const translations = {
     actions: { export: 'Exporter JSON', import: 'Importer JSON', clear: "Nettoyer l'historique" },
     messages: {
       teamNeedChampions: '{label} : ajoute entre 1 et 4 champions.', teamMaxChampions: '{label} : maximum 4 champions.', teamInvalid: '{label} invalide.',
-      playerTeam: 'Team joueur', playerRankRequired: 'Rank joueur obligatoire.', winRequired: 'Indique si le combat est une victoire ou une défaite.',
+      playerTeam: 'Team joueur', winRequired: 'Indique si le combat est une victoire ou une défaite.',
       lockImpossible: 'Impossible de verrouiller : {error}', importedJsonMustArray: 'Le JSON importé doit être un tableau de combats.',
       importImpossible: 'Import impossible : {error}', historyAlreadyEmpty: 'Historique déjà vide.',
       clearConfirm: "Supprimer tout l'historique de combat ? Les champions sauvegardés seront conservés."
@@ -54,7 +51,6 @@ const translations = {
     form: {
       title: 'Add fight', playerTeamLabel: 'Player team (1 to 4 champions)', playerTeamPlaceholder: 'Arbiter, Duchess Lilitu, Mithrala, Rotos',
       lockTeam: 'Lock my team (reused automatically)', opponentTeamLabel: 'Opponent team (optional, 1 to 4)', opponentTeamPlaceholder: 'Siphi, Rotos',
-      playerRankLabel: 'Player rank', playerRankPlaceholder: 'G3, Plat, S1, B4', opponentRankLabel: 'Opponent rank (optional)', opponentRankPlaceholder: 'G5, Plat',
       winLegend: 'Win?', submit: 'Add'
     },
     common: { yes: 'Yes', no: 'No', na: 'N/A', notEnoughData: 'Not enough data.' },
@@ -68,7 +64,7 @@ const translations = {
     actions: { export: 'Export JSON', import: 'Import JSON', clear: 'Clear history' },
     messages: {
       teamNeedChampions: '{label}: add between 1 and 4 champions.', teamMaxChampions: '{label}: maximum 4 champions.', teamInvalid: '{label} is invalid.',
-      playerTeam: 'Player team', playerRankRequired: 'Player rank is required.', winRequired: 'Please indicate whether the fight is a win or a loss.',
+      playerTeam: 'Player team', winRequired: 'Please indicate whether the fight is a win or a loss.',
       lockImpossible: 'Cannot lock team: {error}', importedJsonMustArray: 'Imported JSON must be an array of fights.',
       importImpossible: 'Import failed: {error}', historyAlreadyEmpty: 'History is already empty.',
       clearConfirm: 'Delete all fight history? Saved champions will be kept.'
@@ -662,9 +658,6 @@ form.addEventListener('submit', (event) => {
       validateTeam(opponentTeam, t('stats.opponentTeam'), true);
     }
 
-    if (!playerRankInput.value.trim()) {
-      throw new Error(t('messages.playerRankRequired'));
-    }
 
     const winChoice = form.querySelector('input[name="win"]:checked');
     if (!winChoice) {
@@ -678,8 +671,6 @@ form.addEventListener('submit', (event) => {
       timestamp: Date.now(),
       player_team: playerTeam,
       opponent_team: opponentTeam,
-      player_rank_str: playerRankInput.value.trim(),
-      opponent_rank_str: opponentRankInput.value.trim(),
       win: winChoice.value === 'yes',
     });
 
