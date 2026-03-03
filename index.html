@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Raid Arena Tracker - Classic 4v4</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <main class="container">
+      <header class="app-header">
+        <h1>Raid Arena Tracker - Classic 4v4</h1>
+        <p class="subtitle">Suivi local de tes combats (stockage 100% navigateur)</p>
+        <p class="subtitle">
+          Sauvegarde automatique dans le profil navigateur Windows (localStorage + backup interne)
+        </p>
+      </header>
+
+      <section class="card" aria-labelledby="add-fight-title">
+        <h2 id="add-fight-title">Ajouter combat</h2>
+        <form id="fight-form" novalidate>
+          <div class="form-grid">
+            <label>
+              Team joueur (1 à 4 champions)
+              <input
+                type="text"
+                id="player-team"
+                required
+                placeholder="Arbiter, Duchess Lilitu, Mithrala, Rotos"
+              />
+            </label>
+
+            <label>
+              Team adverse (optionnel, 1 à 4)
+              <input
+                type="text"
+                id="opponent-team"
+                placeholder="Siphi, Rotos"
+              />
+            </label>
+
+            <label>
+              Rank joueur
+              <input type="text" id="player-rank" required placeholder="G3, Plat, S1, B4" />
+            </label>
+
+            <label>
+              Rank adverse (optionnel)
+              <input type="text" id="opponent-rank" placeholder="G5, Plat" />
+            </label>
+          </div>
+
+          <fieldset class="radio-group">
+            <legend>Victoire ?</legend>
+            <label><input type="radio" name="win" value="yes" required /> Oui</label>
+            <label><input type="radio" name="win" value="no" /> Non</label>
+          </fieldset>
+
+          <p id="form-error" class="error" role="alert" aria-live="polite"></p>
+          <button type="submit" class="btn primary">Ajouter</button>
+        </form>
+      </section>
+
+      <section class="stats" aria-live="polite">
+        <div class="card">
+          <h2>Global</h2>
+          <div id="global-stats" class="stats-grid"></div>
+        </div>
+
+        <div class="card">
+          <h2>Meilleures teams (min 5 combats)</h2>
+          <div id="best-teams"></div>
+        </div>
+
+        <div class="card">
+          <h2>Synergies (Top 5 paires, min 8 combats)</h2>
+          <div id="synergy-stats"></div>
+        </div>
+
+        <div class="card">
+          <h2>Teams adverses</h2>
+          <h3>Top 5 battues</h3>
+          <div id="opponents-beaten"></div>
+          <h3>Top 5 qui te battent</h3>
+          <div id="opponents-lost"></div>
+        </div>
+
+        <div class="card">
+          <h2>Ranks</h2>
+          <div id="rank-stats"></div>
+        </div>
+      </section>
+
+      <section class="footer-actions card">
+        <button id="export-btn" class="btn">Exporter JSON</button>
+        <label class="btn file-btn" for="import-file">Importer JSON</label>
+        <input id="import-file" type="file" accept="application/json" />
+      </section>
+    </main>
+
+    <script src="script.js"></script>
+  </body>
+</html>
