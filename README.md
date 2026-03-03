@@ -29,8 +29,6 @@ Mini web app statique (HTML/CSS/JS vanilla) pour suivre tes combats **Classic Ar
 ### Ajouter un combat
 - Remplis la team joueur (**1 à 4 champions**, séparés par virgules)
 - Team adverse (optionnelle, mais si remplie : **1 à 4**)
-- Rank joueur
-- Rank adverse (optionnel)
 - Victoire : Oui/Non
 - Clique **Ajouter**
 
@@ -89,8 +87,6 @@ Chaque combat :
   "timestamp": 1730000000000,
   "player_team": ["Arbiter", "Duchess Lilitu", "Mithrala", "Rotos"],
   "opponent_team": ["Siphi", "Rotos"],
-  "player_rank_str": "G3",
-  "opponent_rank_str": "Plat",
   "win": true
 }
 ```
