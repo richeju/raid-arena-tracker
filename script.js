@@ -6,6 +6,15 @@ const CHAMPION_POOL_KEY = 'raid_arena_champion_pool';
 const PLAYER_TEAM_LOCK_KEY = 'raid_arena_player_team_lock';
 const LANGUAGE_KEY = 'raid_arena_language';
 
+const {
+  titleCase,
+  computeWinrate,
+  computeCurrentStreak,
+  buildBestTeamRows,
+  buildSynergyRows,
+  buildOpponentRows,
+} = window.RaidArenaLogic;
+
 const form = document.getElementById('fight-form');
 const playerTeamSlots = [1, 2, 3, 4].map((slot) => document.getElementById(`player-slot-${slot}`));
 const opponentTeamSlots = [1, 2, 3, 4].map((slot) => document.getElementById(`opponent-slot-${slot}`));
@@ -109,15 +118,6 @@ function applyTranslations() {
   renderAllStats();
 }
 
-function titleCase(value) {
-  return value
-    .toLowerCase()
-    .split(' ')
-    .filter(Boolean)
-    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
-    .join(' ');
-}
-
 function parseTeamFromSlots(inputs) {
   return inputs.map((input) => titleCase(input.value.trim())).filter(Boolean);
 }
@@ -132,10 +132,6 @@ function validateTeam(team, label, required) {
   if (!required && team.length !== 0 && team.length < 1) {
     throw new Error(t('messages.teamInvalid', { label }));
   }
-}
-
-function getTeamKey(team) {
-  return [...team].map(titleCase).join(',');
 }
 
 function loadFights() {
@@ -328,32 +324,6 @@ async function restoreFromBackupIfNeeded() {
   renderAllStats();
 }
 
-function computeWinrate(fights) {
-  if (!fights.length) {
-    return 0;
-  }
-  const wins = fights.filter((fight) => fight.win).length;
-  return (wins / fights.length) * 100;
-}
-
-function computeCurrentStreak(fights) {
-  if (!fights.length) {
-    return '0';
-  }
-  const lastResult = fights[fights.length - 1].win;
-  let count = 0;
-
-  for (let i = fights.length - 1; i >= 0; i -= 1) {
-    if (fights[i].win === lastResult) {
-      count += 1;
-    } else {
-      break;
-    }
-  }
-
-  return `${lastResult ? 'W' : 'L'} x${count}`;
-}
-
 function buildTable(headers, rows) {
   if (!rows.length) {
     return `<p class="empty">${t('common.notEnoughData')}</p>`;
@@ -382,64 +352,12 @@ function renderGlobalStats(fights) {
 }
 
 function renderBestTeams(fights) {
-  const grouped = new Map();
-
-  fights.forEach((fight) => {
-    const key = getTeamKey(fight.player_team || []);
-    if (!key) {
-      return;
-    }
-    if (!grouped.has(key)) {
-      grouped.set(key, []);
-    }
-    grouped.get(key).push(fight);
-  });
-
-  const rows = [...grouped.entries()]
-    .map(([team, teamFights]) => ({
-      team,
-      count: teamFights.length,
-      wr: computeWinrate(teamFights),
-    }))
-    .filter((entry) => entry.count >= 5)
-    .sort((a, b) => b.wr - a.wr || b.count - a.count)
-    .map((entry) => [entry.team, `${entry.wr.toFixed(1)}%`, entry.count]);
-
+  const rows = buildBestTeamRows(fights);
   document.getElementById('best-teams').innerHTML = buildTable([t('stats.team'), t('stats.wr'), t('stats.fights')], rows);
 }
 
 function renderSynergies(fights) {
-  const pairMap = new Map();
-  const globalWr = computeWinrate(fights);
-
-  fights.forEach((fight) => {
-    const uniqueTeam = [...new Set((fight.player_team || []).map(titleCase))];
-    for (let i = 0; i < uniqueTeam.length; i += 1) {
-      for (let j = i + 1; j < uniqueTeam.length; j += 1) {
-        const pair = [uniqueTeam[i], uniqueTeam[j]].sort((a, b) => a.localeCompare(b)).join(' + ');
-        if (!pairMap.has(pair)) {
-          pairMap.set(pair, []);
-        }
-        pairMap.get(pair).push(fight);
-      }
-    }
-  });
-
-  const rows = [...pairMap.entries()]
-    .map(([pair, pairFights]) => {
-      const wr = computeWinrate(pairFights);
-      return {
-        pair,
-        fights: pairFights.length,
-        wr,
-        delta: wr - globalWr,
-      };
-    })
-    .filter((entry) => entry.fights >= 8)
-    .sort((a, b) => b.wr - a.wr || b.fights - a.fights)
-    .slice(0, 5)
-    .map((entry) => [entry.pair, `${entry.wr.toFixed(1)}%`, `${entry.delta >= 0 ? '+' : ''}${entry.delta.toFixed(1)}%`, entry.fights]);
-
+  const rows = buildSynergyRows(fights);
   document.getElementById('synergy-stats').innerHTML = buildTable(
     [t('stats.pair'), t('stats.wr'), t('stats.deltaVsGlobal'), t('stats.fights')],
     rows,
@@ -447,38 +365,7 @@ function renderSynergies(fights) {
 }
 
 function renderOpponentStats(fights) {
-  const grouped = new Map();
-
-  fights.forEach((fight) => {
-    const team = getTeamKey(fight.opponent_team || []);
-    if (!team) {
-      return;
-    }
-    if (!grouped.has(team)) {
-      grouped.set(team, []);
-    }
-    grouped.get(team).push(fight);
-  });
-
-  const beatenRows = [...grouped.entries()]
-    .map(([team, teamFights]) => ({
-      team,
-      wins: teamFights.filter((fight) => fight.win).length,
-    }))
-    .filter((entry) => entry.wins > 0)
-    .sort((a, b) => b.wins - a.wins)
-    .slice(0, 5)
-    .map((entry) => [entry.team, entry.wins]);
-
-  const lostRows = [...grouped.entries()]
-    .map(([team, teamFights]) => ({
-      team,
-      losses: teamFights.filter((fight) => !fight.win).length,
-    }))
-    .filter((entry) => entry.losses > 0)
-    .sort((a, b) => b.losses - a.losses)
-    .slice(0, 5)
-    .map((entry) => [entry.team, entry.losses]);
+  const { beatenRows, lostRows } = buildOpponentRows(fights);
 
   document.getElementById('opponents-beaten').innerHTML = buildTable([t('stats.opponentTeam'), t('stats.wins')], beatenRows);
   document.getElementById('opponents-lost').innerHTML = buildTable([t('stats.opponentTeam'), t('stats.losses')], lostRows);

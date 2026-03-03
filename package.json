@@ -1,0 +1,17 @@
+{
+  "name": "raid-arena-tracker",
+  "version": "1.0.0",
+  "description": "Mini web app statique (HTML/CSS/JS vanilla) pour suivre tes combats **Classic Arena Raid: Shadow Legends**.",
+  "main": "logic.js",
+  "scripts": {
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "devDependencies": {
+    "eslint": "^9.39.3"
+  }
+}

@@ -24,6 +24,21 @@ Mini web app statique (HTML/CSS/JS vanilla) pour suivre tes combats **Classic Ar
 
 > Les données restent propres à chaque navigateur/appareil, même via GitHub Pages.
 
+## Qualité de code (linting)
+
+Ce projet utilise **ESLint** pour vérifier la qualité du JavaScript.
+
+```bash
+npm install
+npm run lint
+```
+
+Pour appliquer automatiquement les corrections possibles :
+
+```bash
+npm run lint:fix
+```
+
 ## Utilisation
 
 ### Ajouter un combat
