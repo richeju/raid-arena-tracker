@@ -30,10 +30,10 @@ const translations = {
     common: { yes: 'Oui', no: 'Non', na: 'N/A', notEnoughData: 'Pas assez de données.' },
     stats: {
       globalTitle: 'Global', bestTeamsTitle: 'Meilleures teams (min 5 combats)', synergyTitle: 'Synergies (Top 5 paires, min 8 combats)',
-      opponentsTitle: 'Teams adverses', topBeaten: 'Top 5 battues', topLost: 'Top 5 qui te battent', ranksTitle: 'Ranks',
+      opponentsTitle: 'Teams adverses', topBeaten: 'Top 5 battues', topLost: 'Top 5 qui te battent',
       totalFights: 'Total combats', globalWinrate: 'Winrate global', currentStreak: 'Streak actuelle', lastTen: 'Derniers 10',
       team: 'Team', wr: 'WR', fights: 'Combats', pair: 'Paire', deltaVsGlobal: 'Delta vs global', opponentTeam: 'Team adverse',
-      wins: 'Victoires', losses: 'Défaites', bestRank: 'Meilleur rank atteint', wrVsStronger: 'WR vs plus fort', wrVsLower: 'WR vs plus faible'
+      wins: 'Victoires', losses: 'Défaites'
     },
     actions: { export: 'Exporter JSON', import: 'Importer JSON', clear: "Nettoyer l'historique" },
     messages: {
@@ -43,7 +43,6 @@ const translations = {
       importImpossible: 'Import impossible : {error}', historyAlreadyEmpty: 'Historique déjà vide.',
       clearConfirm: "Supprimer tout l'historique de combat ? Les champions sauvegardés seront conservés."
     },
-    ranks: { bronze: 'Bronze', silver: 'Silver', gold: 'Gold', platinum: 'Platinum' }
   },
   en: {
     pageTitle: 'Raid Arena Tracker - Classic 4v4',
@@ -56,10 +55,10 @@ const translations = {
     common: { yes: 'Yes', no: 'No', na: 'N/A', notEnoughData: 'Not enough data.' },
     stats: {
       globalTitle: 'Overall', bestTeamsTitle: 'Best teams (min 5 fights)', synergyTitle: 'Synergies (Top 5 pairs, min 8 fights)',
-      opponentsTitle: 'Opponent teams', topBeaten: 'Top 5 defeated', topLost: 'Top 5 that beat you', ranksTitle: 'Ranks',
+      opponentsTitle: 'Opponent teams', topBeaten: 'Top 5 defeated', topLost: 'Top 5 that beat you',
       totalFights: 'Total fights', globalWinrate: 'Global win rate', currentStreak: 'Current streak', lastTen: 'Last 10',
       team: 'Team', wr: 'WR', fights: 'Fights', pair: 'Pair', deltaVsGlobal: 'Delta vs global', opponentTeam: 'Opponent team',
-      wins: 'Wins', losses: 'Losses', bestRank: 'Best rank reached', wrVsStronger: 'WR vs stronger', wrVsLower: 'WR vs lower'
+      wins: 'Wins', losses: 'Losses'
     },
     actions: { export: 'Export JSON', import: 'Import JSON', clear: 'Clear history' },
     messages: {
@@ -69,7 +68,6 @@ const translations = {
       importImpossible: 'Import failed: {error}', historyAlreadyEmpty: 'History is already empty.',
       clearConfirm: 'Delete all fight history? Saved champions will be kept.'
     },
-    ranks: { bronze: 'Bronze', silver: 'Silver', gold: 'Gold', platinum: 'Platinum' }
   },
 };
 
@@ -138,81 +136,6 @@ function validateTeam(team, label, required) {
 
 function getTeamKey(team) {
   return [...team].map(titleCase).join(',');
-}
-
-function parseRank(value) {
-  if (!value || !value.trim()) {
-    return null;
-  }
-
-  const input = value.trim().toUpperCase();
-  if (input.startsWith('PLAT')) {
-    const number = Number.parseInt(input.replace(/[^0-9]/g, ''), 10);
-    return Number.isNaN(number) ? 14 : 14 + Math.max(0, number - 1);
-  }
-
-  const romanMap = { I: 1, II: 2, III: 3, IV: 4, V: 5 };
-  const shorthand = input.match(/^([BSG])\s*([1-5]|I|II|III|IV|V)$/);
-
-  if (shorthand) {
-    const tier = shorthand[1];
-    const rawDivision = shorthand[2];
-    const division = Number(rawDivision) || romanMap[rawDivision] || null;
-
-    if (!division) {
-      return null;
-    }
-
-    if (tier === 'B' && division <= 4) {
-      return division;
-    }
-    if (tier === 'S' && division <= 4) {
-      return 4 + division;
-    }
-    if (tier === 'G' && division <= 5) {
-      return 8 + division;
-    }
-    return null;
-  }
-
-  const longMatch = input.match(/^(BRONZE|SILVER|GOLD)\s*(I|II|III|IV|V|1|2|3|4|5)$/);
-  if (longMatch) {
-    const tier = longMatch[1];
-    const rawDivision = longMatch[2];
-    const division = Number(rawDivision) || romanMap[rawDivision] || null;
-    if (!division) {
-      return null;
-    }
-    if (tier === 'BRONZE' && division <= 4) {
-      return division;
-    }
-    if (tier === 'SILVER' && division <= 4) {
-      return 4 + division;
-    }
-    if (tier === 'GOLD' && division <= 5) {
-      return 8 + division;
-    }
-  }
-
-  return null;
-}
-
-function rankToStr(rankInt) {
-  if (!rankInt || rankInt < 1) {
-    return t('common.na');
-  }
-
-  const roman = ['', 'I', 'II', 'III', 'IV', 'V'];
-  if (rankInt <= 4) {
-    return `${t('ranks.bronze')} ${roman[rankInt]}`;
-  }
-  if (rankInt <= 8) {
-    return `${t('ranks.silver')} ${roman[rankInt - 4]}`;
-  }
-  if (rankInt <= 13) {
-    return `${t('ranks.gold')} ${roman[rankInt - 8]}`;
-  }
-  return rankInt === 14 ? t('ranks.platinum') : `${t('ranks.platinum')} +${rankInt - 14}`;
 }
 
 function loadFights() {
@@ -561,43 +484,6 @@ function renderOpponentStats(fights) {
   document.getElementById('opponents-lost').innerHTML = buildTable([t('stats.opponentTeam'), t('stats.losses')], lostRows);
 }
 
-function renderRankStats(fights) {
-  const playerRanks = fights
-    .map((fight) => parseRank(fight.player_rank_str || ''))
-    .filter((rank) => rank !== null);
-  const bestRank = playerRanks.length ? Math.max(...playerRanks) : null;
-
-  const rankedOpponents = fights.filter((fight) => parseRank(fight.opponent_rank_str || '') !== null);
-  let wrVsStronger = 0;
-  let wrVsLower = 0;
-
-  if (rankedOpponents.length) {
-    const stronger = rankedOpponents.filter(
-      (fight) => parseRank(fight.opponent_rank_str) > parseRank(fight.player_rank_str),
-    );
-    const lower = rankedOpponents.filter(
-      (fight) => parseRank(fight.opponent_rank_str) < parseRank(fight.player_rank_str),
-    );
-
-    wrVsStronger = computeWinrate(stronger);
-    wrVsLower = computeWinrate(lower);
-  }
-
-  document.getElementById('rank-stats').innerHTML = `
-    <div class="stats-grid">
-      <div class="stat-item"><span class="label">${t('stats.bestRank')}</span><div class="value">${
-        bestRank ? rankToStr(bestRank) : t('common.na')
-      }</div></div>
-      <div class="stat-item"><span class="label">${t('stats.wrVsStronger')}</span><div class="value">${wrVsStronger.toFixed(
-        1,
-      )}%</div></div>
-      <div class="stat-item"><span class="label">${t('stats.wrVsLower')}</span><div class="value">${wrVsLower.toFixed(
-        1,
-      )}%</div></div>
-    </div>
-  `;
-}
-
 function renderChampionSuggestions(fights) {
   const champions = new Set(loadChampionPool());
 
@@ -620,7 +506,6 @@ function renderAllStats() {
   renderBestTeams(fights);
   renderSynergies(fights);
   renderOpponentStats(fights);
-  renderRankStats(fights);
 }
 
 form.addEventListener('submit', (event) => {
