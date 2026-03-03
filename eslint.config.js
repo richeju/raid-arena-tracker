@@ -12,6 +12,7 @@ module.exports = [
         URL: 'readonly',
         Blob: 'readonly',
         fetch: 'readonly',
+        DOMParser: 'readonly',
         module: 'readonly',
         require: 'readonly',
         globalThis: 'readonly',

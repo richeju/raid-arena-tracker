@@ -5,7 +5,8 @@ const BACKUP_KEY = 'latest';
 const CHAMPION_POOL_KEY = 'raid_arena_champion_pool';
 const PLAYER_TEAM_LOCK_KEY = 'raid_arena_player_team_lock';
 const LANGUAGE_KEY = 'raid_arena_language';
-const REMOTE_CHAMPIONS_URL = 'https://raw.githubusercontent.com/McRadane/raid-data/master/champions.json';
+const AYUMILOVE_CHAMPIONS_URL = 'https://ayumilove.net/raid-shadow-legends-list-of-champions-by-faction/';
+const LEGACY_CHAMPIONS_JSON_URL = 'https://raw.githubusercontent.com/McRadane/raid-data/master/champions.json';
 
 const {
   titleCase,
@@ -237,10 +238,10 @@ function fillTeamSlots(inputs, team) {
 }
 
 function getFilteredChampions(token = '') {
-  const normalizedToken = titleCase(token.trim());
+  const normalizedToken = token.trim().toLocaleLowerCase();
   const champions = loadChampionPool().sort((a, b) => a.localeCompare(b));
   return normalizedToken
-    ? champions.filter((champion) => champion.startsWith(normalizedToken))
+    ? champions.filter((champion) => champion.toLocaleLowerCase().includes(normalizedToken))
     : champions;
 }
 
@@ -472,14 +473,7 @@ function renderOpponentStats(fights) {
 async function syncChampionPoolFromWeb() {
   formError.textContent = t('messages.syncStarted');
 
-  const response = await fetch(REMOTE_CHAMPIONS_URL, { cache: 'no-store' });
-  if (!response.ok) {
-    throw new Error(`HTTP ${response.status}`);
-  }
-
-  const payload = await response.json();
-  const rawChampions = Array.isArray(payload) ? payload : Object.keys(payload || {});
-  const remoteChampions = [...new Set(rawChampions.map(titleCase).filter(Boolean))];
+  const remoteChampions = await loadChampionsFromRemoteSources();
 
   if (!remoteChampions.length) {
     throw new Error('No champions found in remote source');
@@ -492,6 +486,62 @@ async function syncChampionPoolFromWeb() {
   if (activeAutocompleteInput && !autocompleteDropdown.hidden) {
     showAutocompleteDropdown(activeAutocompleteInput);
   }
+}
+
+async function loadChampionsFromRemoteSources() {
+  const ayumiloveChampions = await fetchChampionsFromAyumilove();
+  if (ayumiloveChampions.length) {
+    return ayumiloveChampions.sort((a, b) => a.localeCompare(b));
+  }
+
+  return fetchChampionsFromLegacyJsonSource();
+}
+
+async function fetchChampionsFromLegacyJsonSource() {
+  const response = await fetch(LEGACY_CHAMPIONS_JSON_URL, { cache: 'no-store' });
+  if (!response.ok) {
+    throw new Error(`HTTP ${response.status}`);
+  }
+
+  const payload = await response.json();
+  const rawChampions = Array.isArray(payload) ? payload : Object.keys(payload || {});
+  return [...new Set(rawChampions.map(titleCase).filter(Boolean))];
+}
+
+function parseAyumiloveChampionNames(markup) {
+  const parser = new DOMParser();
+  const doc = parser.parseFromString(markup, 'text/html');
+
+  return [...new Set([...doc.querySelectorAll('a[href]')]
+    .filter((link) => link.getAttribute('href')?.includes('/raid-shadow-legends-'))
+    .map((link) => titleCase(link.textContent?.trim() || ''))
+    .filter((name) => name && !name.startsWith('[')))];
+}
+
+async function fetchChampionsFromAyumilove() {
+  const candidateUrls = [
+    AYUMILOVE_CHAMPIONS_URL,
+    `https://api.allorigins.win/raw?url=${encodeURIComponent(AYUMILOVE_CHAMPIONS_URL)}`,
+  ];
+
+  for (const url of candidateUrls) {
+    try {
+      const response = await fetch(url, { cache: 'no-store' });
+      if (!response.ok) {
+        continue;
+      }
+
+      const markup = await response.text();
+      const champions = parseAyumiloveChampionNames(markup);
+      if (champions.length) {
+        return champions;
+      }
+    } catch {
+      // Continue with next fallback.
+    }
+  }
+
+  return [];
 }
 
 function renderChampionMemoryIndicator() {

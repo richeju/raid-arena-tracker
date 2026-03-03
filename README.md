@@ -42,6 +42,15 @@ Pour appliquer automatiquement les corrections possibles :
 npm run lint:fix
 ```
 
+## Source des champions (synchronisation web)
+
+Le bouton **Mettre à jour les champions (web)** utilise maintenant :
+
+- un scraping de la page Ayumilove (source principale, avec fallback CORS via `allorigins` si nécessaire)
+- le JSON `McRadane/raid-data` uniquement en secours si Ayumilove est indisponible
+
+Cela évite de dépendre d'une source JSON historique peu mise à jour, tout en gardant une roue de secours.
+
 ## Utilisation
 
 ### Ajouter un combat
