@@ -28,6 +28,9 @@ Mini web app statique (HTML/CSS/JS vanilla) pour suivre tes combats **Classic Ar
 
 Ce projet utilise **ESLint** pour vérifier la qualité du JavaScript.
 
+- Un workflow GitHub Actions (`.github/workflows/lint-review.yml`) lance automatiquement le lint sur chaque **Pull Request** (vers `main` ou `master`) avant validation de la merge request.
+- Tu peux aussi lancer le lint en local :
+
 ```bash
 npm install
 npm run lint
