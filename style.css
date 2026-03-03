@@ -297,21 +297,6 @@ td {
   background: #162033;
 }
 
-.autocomplete-remove {
-  border: none;
-  border-left: 1px solid #1f2937;
-  width: 2rem;
-  height: 2rem;
-  background: transparent;
-  color: var(--muted);
-  cursor: pointer;
-  font-size: 0.95rem;
-}
-
-.autocomplete-remove:hover {
-  color: var(--danger);
-  background: rgba(239, 68, 68, 0.12);
-}
 
 @media (max-width: 800px) {
   .form-grid,
