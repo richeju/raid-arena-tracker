@@ -3,12 +3,14 @@ const BACKUP_DB_NAME = 'raid_arena_tracker_backup';
 const BACKUP_STORE_NAME = 'snapshots';
 const BACKUP_KEY = 'latest';
 const CHAMPION_POOL_KEY = 'raid_arena_champion_pool';
+const PLAYER_TEAM_LOCK_KEY = 'raid_arena_player_team_lock';
 
 const form = document.getElementById('fight-form');
 const playerTeamInput = document.getElementById('player-team');
 const opponentTeamInput = document.getElementById('opponent-team');
 const playerRankInput = document.getElementById('player-rank');
 const opponentRankInput = document.getElementById('opponent-rank');
+const lockPlayerTeamInput = document.getElementById('lock-player-team');
 const formError = document.getElementById('form-error');
 const championOptions = document.getElementById('champion-options');
 const exportBtn = document.getElementById('export-btn');
@@ -158,6 +160,81 @@ function loadChampionPool() {
 
 function saveChampionPool(champions) {
   localStorage.setItem(CHAMPION_POOL_KEY, JSON.stringify(champions));
+}
+
+function loadPlayerTeamLock() {
+  try {
+    const raw = localStorage.getItem(PLAYER_TEAM_LOCK_KEY);
+    if (!raw) {
+      return { locked: false, team: [] };
+    }
+
+    const parsed = JSON.parse(raw);
+    if (!parsed || typeof parsed !== 'object') {
+      return { locked: false, team: [] };
+    }
+
+    return {
+      locked: Boolean(parsed.locked),
+      team: Array.isArray(parsed.team) ? parsed.team.map(titleCase).filter(Boolean).slice(0, 4) : [],
+    };
+  } catch {
+    return { locked: false, team: [] };
+  }
+}
+
+function savePlayerTeamLock(lockData) {
+  localStorage.setItem(PLAYER_TEAM_LOCK_KEY, JSON.stringify(lockData));
+}
+
+function teamToInputValue(team) {
+  return team.map(titleCase).filter(Boolean).join(', ');
+}
+
+function getCurrentChampionToken(rawInputValue) {
+  const parts = rawInputValue.split(',');
+  return parts.length ? parts[parts.length - 1].trim() : rawInputValue.trim();
+}
+
+function renderChampionOptions(champions, token = '') {
+  const normalizedToken = titleCase(token.trim());
+  const filtered = normalizedToken
+    ? champions.filter((champion) => champion.startsWith(normalizedToken))
+    : champions;
+
+  championOptions.innerHTML = filtered
+    .slice(0, 50)
+    .map((champion) => `<option value="${champion}"></option>`)
+    .join('');
+}
+
+function attachTeamAutocomplete(input) {
+  input.dataset.prevValue = input.value;
+
+  input.addEventListener('focus', () => {
+    const champions = loadChampionPool().sort((a, b) => a.localeCompare(b));
+    renderChampionOptions(champions, getCurrentChampionToken(input.value));
+    input.dataset.prevValue = input.value;
+  });
+
+  input.addEventListener('input', () => {
+    const champions = loadChampionPool().sort((a, b) => a.localeCompare(b));
+    const previousValue = input.dataset.prevValue || '';
+    const currentValue = input.value;
+    const selectedChampion = titleCase(currentValue.trim());
+
+    if (
+      previousValue.includes(',')
+      && !currentValue.includes(',')
+      && champions.includes(selectedChampion)
+    ) {
+      const prefix = previousValue.slice(0, previousValue.lastIndexOf(',') + 1).trim();
+      input.value = `${prefix}, ${selectedChampion}`.replace(/^,\s*/, '');
+    }
+
+    input.dataset.prevValue = input.value;
+    renderChampionOptions(champions, getCurrentChampionToken(input.value));
+  });
 }
 
 function upsertChampionPoolFromTeams(teams) {
@@ -460,12 +537,7 @@ function renderChampionSuggestions(fights) {
 
   const sortedChampions = [...champions].sort((a, b) => a.localeCompare(b));
   saveChampionPool(sortedChampions);
-
-  const optionsHtml = sortedChampions
-    .map((champion) => `<option value="${champion}"></option>`)
-    .join('');
-
-  championOptions.innerHTML = optionsHtml;
+  renderChampionOptions(sortedChampions);
 }
 
 function renderAllStats() {
@@ -483,7 +555,8 @@ form.addEventListener('submit', (event) => {
   formError.textContent = '';
 
   try {
-    const playerTeam = parseTeam(playerTeamInput.value);
+    const lockData = loadPlayerTeamLock();
+    const playerTeam = lockData.locked ? lockData.team : parseTeam(playerTeamInput.value);
     const opponentTeam = parseTeam(opponentTeamInput.value);
     validateTeam(playerTeam, 'Team joueur', true);
     if (opponentTeamInput.value.trim()) {
@@ -513,11 +586,60 @@ form.addEventListener('submit', (event) => {
 
     saveFights(fights);
     form.reset();
+
+    const refreshedLockData = loadPlayerTeamLock();
+    if (refreshedLockData.locked && refreshedLockData.team.length) {
+      lockPlayerTeamInput.checked = true;
+      playerTeamInput.value = teamToInputValue(refreshedLockData.team);
+      playerTeamInput.readOnly = true;
+    }
+
     renderAllStats();
   } catch (error) {
     formError.textContent = error.message;
   }
 });
+
+lockPlayerTeamInput.addEventListener('change', () => {
+  formError.textContent = '';
+
+  if (!lockPlayerTeamInput.checked) {
+    savePlayerTeamLock({ locked: false, team: [] });
+    playerTeamInput.readOnly = false;
+    return;
+  }
+
+  try {
+    const team = parseTeam(playerTeamInput.value);
+    validateTeam(team, 'Team joueur', true);
+    const normalizedTeam = team.map(titleCase);
+    savePlayerTeamLock({ locked: true, team: normalizedTeam });
+    playerTeamInput.value = teamToInputValue(normalizedTeam);
+    playerTeamInput.readOnly = true;
+  } catch (error) {
+    lockPlayerTeamInput.checked = false;
+    formError.textContent = `Impossible de verrouiller : ${error.message}`;
+  }
+});
+
+playerTeamInput.addEventListener('blur', () => {
+  if (playerTeamInput.readOnly) {
+    return;
+  }
+
+  const normalizedTeam = parseTeam(playerTeamInput.value);
+  playerTeamInput.value = teamToInputValue(normalizedTeam);
+});
+
+attachTeamAutocomplete(playerTeamInput);
+attachTeamAutocomplete(opponentTeamInput);
+
+const initialLockData = loadPlayerTeamLock();
+if (initialLockData.locked && initialLockData.team.length) {
+  lockPlayerTeamInput.checked = true;
+  playerTeamInput.value = teamToInputValue(initialLockData.team);
+  playerTeamInput.readOnly = true;
+}
 
 [playerTeamInput, opponentTeamInput].forEach((input) => {
   input.addEventListener('change', () => {
