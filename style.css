@@ -262,57 +262,55 @@ td {
   font-size: 0.9rem;
 }
 
-.champion-cache {
-  margin-top: 1rem;
-  border-top: 1px solid var(--border);
-  padding-top: 1rem;
-}
-
-.champion-cache h3 {
-  margin: 0;
-}
-
-.cache-help {
-  color: var(--muted);
-  margin: 0.4rem 0 0.8rem;
-  font-size: 0.88rem;
-}
-
-.cache-list {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.45rem;
-}
-
-.cache-chip {
+.autocomplete-dropdown {
+  position: absolute;
+  z-index: 999;
+  max-height: 240px;
+  overflow-y: auto;
   border: 1px solid var(--border);
-  border-radius: 999px;
-  padding: 0.2rem 0.2rem 0.2rem 0.7rem;
+  border-radius: 8px;
   background: #0f172a;
-  display: inline-flex;
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.35);
+}
+
+.autocomplete-item {
+  display: flex;
   align-items: center;
-  gap: 0.45rem;
+  border-bottom: 1px solid #1f2937;
 }
 
-.cache-chip-name {
-  font-size: 0.84rem;
+.autocomplete-item:last-child {
+  border-bottom: none;
 }
 
-.cache-remove-btn {
+.autocomplete-pick {
+  flex: 1;
   border: none;
+  text-align: left;
+  padding: 0.55rem 0.7rem;
+  background: transparent;
+  color: var(--text);
+  cursor: pointer;
+}
+
+.autocomplete-pick:hover {
+  background: #162033;
+}
+
+.autocomplete-remove {
+  border: none;
+  border-left: 1px solid #1f2937;
+  width: 2rem;
+  height: 2rem;
   background: transparent;
   color: var(--muted);
   cursor: pointer;
-  width: 1.25rem;
-  height: 1.25rem;
-  border-radius: 999px;
-  padding: 0;
-  line-height: 1;
+  font-size: 0.95rem;
 }
 
-.cache-remove-btn:hover {
+.autocomplete-remove:hover {
   color: var(--danger);
-  background: rgba(239, 68, 68, 0.08);
+  background: rgba(239, 68, 68, 0.12);
 }
 
 @media (max-width: 800px) {

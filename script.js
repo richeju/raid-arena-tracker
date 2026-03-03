@@ -20,12 +20,10 @@ const playerTeamSlots = [1, 2, 3, 4].map((slot) => document.getElementById(`play
 const opponentTeamSlots = [1, 2, 3, 4].map((slot) => document.getElementById(`opponent-slot-${slot}`));
 const lockPlayerTeamInput = document.getElementById('lock-player-team');
 const formError = document.getElementById('form-error');
-const championOptions = document.getElementById('champion-options');
 const exportBtn = document.getElementById('export-btn');
 const importFileInput = document.getElementById('import-file');
 const clearFightsBtn = document.getElementById('clear-fights-btn');
 const languageSelect = document.getElementById('language-select');
-const championCacheList = document.getElementById('champion-cache-list');
 
 
 const translations = {
@@ -46,7 +44,6 @@ const translations = {
       wins: 'Victoires', losses: 'Défaites'
     },
     actions: { export: 'Exporter JSON', import: 'Importer JSON', clear: "Nettoyer l'historique" },
-    cache: { title: 'Champions enregistrés', help: 'Supprime les entrées erronées du cache de suggestions.', remove: 'Supprimer {name} du cache' },
     messages: {
       teamNeedChampions: '{label} : ajoute entre 1 et 4 champions.', teamMaxChampions: '{label} : maximum 4 champions.', teamInvalid: '{label} invalide.',
       playerTeam: 'Team joueur', winRequired: 'Indique si le combat est une victoire ou une défaite.',
@@ -72,7 +69,6 @@ const translations = {
       wins: 'Wins', losses: 'Losses'
     },
     actions: { export: 'Export JSON', import: 'Import JSON', clear: 'Clear history' },
-    cache: { title: 'Saved champions', help: 'Remove incorrect entries from the suggestion cache.', remove: 'Remove {name} from cache' },
     messages: {
       teamNeedChampions: '{label}: add between 1 and 4 champions.', teamMaxChampions: '{label}: maximum 4 champions.', teamInvalid: '{label} is invalid.',
       playerTeam: 'Player team', winRequired: 'Please indicate whether the fight is a win or a loss.',
@@ -213,33 +209,121 @@ function fillTeamSlots(inputs, team) {
   });
 }
 
-function renderChampionOptions(champions, token = '') {
+function getFilteredChampions(token = '') {
   const normalizedToken = titleCase(token.trim());
-  const filtered = normalizedToken
+  const champions = loadChampionPool().sort((a, b) => a.localeCompare(b));
+  return normalizedToken
     ? champions.filter((champion) => champion.startsWith(normalizedToken))
     : champions;
+}
 
-  championOptions.innerHTML = filtered
+const autocompleteDropdown = document.createElement('div');
+autocompleteDropdown.className = 'autocomplete-dropdown';
+autocompleteDropdown.hidden = true;
+document.body.appendChild(autocompleteDropdown);
+
+let activeAutocompleteInput = null;
+
+function hideAutocompleteDropdown() {
+  autocompleteDropdown.hidden = true;
+  autocompleteDropdown.innerHTML = '';
+}
+
+function showAutocompleteDropdown(input) {
+  const champions = getFilteredChampions(input.value);
+  if (!champions.length) {
+    hideAutocompleteDropdown();
+    return;
+  }
+
+  autocompleteDropdown.innerHTML = champions
     .slice(0, 50)
-    .map((champion) => `<option value="${champion}"></option>`)
+    .map(
+      (champion) => `<div class="autocomplete-item">
+        <button type="button" class="autocomplete-pick" data-champion-name="${encodeURIComponent(champion)}">${escapeHtml(champion)}</button>
+        <button type="button" class="autocomplete-remove" data-remove-champion="${encodeURIComponent(champion)}" aria-label="×" title="×">×</button>
+      </div>`,
+    )
     .join('');
+
+  const rect = input.getBoundingClientRect();
+  autocompleteDropdown.style.left = `${rect.left + window.scrollX}px`;
+  autocompleteDropdown.style.top = `${rect.bottom + window.scrollY + 4}px`;
+  autocompleteDropdown.style.width = `${rect.width}px`;
+  autocompleteDropdown.hidden = false;
 }
 
 function attachTeamAutocomplete(input) {
   input.addEventListener('focus', () => {
-    const champions = loadChampionPool().sort((a, b) => a.localeCompare(b));
-    renderChampionOptions(champions, input.value);
+    activeAutocompleteInput = input;
+    showAutocompleteDropdown(input);
   });
 
   input.addEventListener('input', () => {
-    const champions = loadChampionPool().sort((a, b) => a.localeCompare(b));
-    renderChampionOptions(champions, input.value);
+    activeAutocompleteInput = input;
+    showAutocompleteDropdown(input);
   });
 
   input.addEventListener('change', () => {
     input.value = titleCase(input.value.trim());
   });
 }
+
+autocompleteDropdown.addEventListener('mousedown', (event) => {
+  event.preventDefault();
+});
+
+autocompleteDropdown.addEventListener('click', (event) => {
+  if (!activeAutocompleteInput) {
+    return;
+  }
+
+  const pickButton = event.target.closest('.autocomplete-pick');
+  if (pickButton) {
+    const champion = pickButton.dataset.championName;
+    if (!champion) {
+      return;
+    }
+    activeAutocompleteInput.value = decodeURIComponent(champion);
+    activeAutocompleteInput.dispatchEvent(new window.Event('change', { bubbles: true }));
+    hideAutocompleteDropdown();
+    return;
+  }
+
+  const removeButton = event.target.closest('.autocomplete-remove');
+  if (removeButton) {
+    const champion = removeButton.dataset.removeChampion;
+    if (!champion) {
+      return;
+    }
+    removeChampionFromCache(decodeURIComponent(champion));
+    showAutocompleteDropdown(activeAutocompleteInput);
+  }
+});
+
+document.addEventListener('click', (event) => {
+  if (!activeAutocompleteInput) {
+    return;
+  }
+
+  const clickedInsideInput = event.target === activeAutocompleteInput;
+  const clickedInsideDropdown = autocompleteDropdown.contains(event.target);
+  if (!clickedInsideInput && !clickedInsideDropdown) {
+    hideAutocompleteDropdown();
+  }
+});
+
+window.addEventListener('resize', () => {
+  if (activeAutocompleteInput && !autocompleteDropdown.hidden) {
+    showAutocompleteDropdown(activeAutocompleteInput);
+  }
+});
+
+window.addEventListener('scroll', () => {
+  if (activeAutocompleteInput && !autocompleteDropdown.hidden) {
+    showAutocompleteDropdown(activeAutocompleteInput);
+  }
+}, true);
 
 function upsertChampionPoolFromTeams(teams) {
   const existing = new Set(loadChampionPool());
@@ -388,26 +472,6 @@ function removeChampionFromCache(championName) {
   saveChampionPool(nextPool);
 }
 
-function renderChampionCache() {
-  if (!championCacheList) {
-    return;
-  }
-
-  const champions = loadChampionPool().sort((a, b) => a.localeCompare(b));
-  if (!champions.length) {
-    championCacheList.innerHTML = `<p class="empty">${t('common.notEnoughData')}</p>`;
-    return;
-  }
-
-  championCacheList.innerHTML = champions
-    .map(
-      (champion) => `<div class="cache-chip">
-        <span class="cache-chip-name">${escapeHtml(champion)}</span>
-        <button type="button" class="cache-remove-btn" data-champion-name="${encodeURIComponent(champion)}" aria-label="${escapeHtml(t('cache.remove', { name: champion }))}" title="${escapeHtml(t('cache.remove', { name: champion }))}">×</button>
-      </div>`,
-    )
-    .join('');
-}
 
 function renderChampionSuggestions(fights) {
   const champions = new Set(loadChampionPool());
@@ -421,13 +485,11 @@ function renderChampionSuggestions(fights) {
 
   const sortedChampions = [...champions].sort((a, b) => a.localeCompare(b));
   saveChampionPool(sortedChampions);
-  renderChampionOptions(sortedChampions);
 }
 
 function renderAllStats() {
   const fights = loadFights();
   renderChampionSuggestions(fights);
-  renderChampionCache();
   renderGlobalStats(fights);
   renderBestTeams(fights);
   renderSynergies(fights);
@@ -534,8 +596,7 @@ if (initialLockData.locked && initialLockData.team.length) {
       }
       upsertChampionPoolFromTeams([team]);
       renderChampionSuggestions(loadFights());
-      renderChampionCache();
-    });
+        });
   });
 });
 
@@ -592,24 +653,6 @@ clearFightsBtn.addEventListener('click', () => {
 });
 
 
-
-if (championCacheList) {
-  championCacheList.addEventListener('click', (event) => {
-    const removeButton = event.target.closest('.cache-remove-btn');
-    if (!removeButton) {
-      return;
-    }
-
-    const championName = removeButton.dataset.championName;
-    if (!championName) {
-      return;
-    }
-
-    removeChampionFromCache(decodeURIComponent(championName));
-    renderChampionSuggestions(loadFights());
-    renderChampionCache();
-  });
-}
 
 if (languageSelect) {
   languageSelect.value = currentLanguage;
