@@ -25,6 +25,7 @@ const exportBtn = document.getElementById('export-btn');
 const importFileInput = document.getElementById('import-file');
 const clearFightsBtn = document.getElementById('clear-fights-btn');
 const languageSelect = document.getElementById('language-select');
+const championCacheList = document.getElementById('champion-cache-list');
 
 
 const translations = {
@@ -45,6 +46,7 @@ const translations = {
       wins: 'Victoires', losses: 'Défaites'
     },
     actions: { export: 'Exporter JSON', import: 'Importer JSON', clear: "Nettoyer l'historique" },
+    cache: { title: 'Champions enregistrés', help: 'Supprime les entrées erronées du cache de suggestions.', remove: 'Supprimer {name} du cache' },
     messages: {
       teamNeedChampions: '{label} : ajoute entre 1 et 4 champions.', teamMaxChampions: '{label} : maximum 4 champions.', teamInvalid: '{label} invalide.',
       playerTeam: 'Team joueur', winRequired: 'Indique si le combat est une victoire ou une défaite.',
@@ -70,6 +72,7 @@ const translations = {
       wins: 'Wins', losses: 'Losses'
     },
     actions: { export: 'Export JSON', import: 'Import JSON', clear: 'Clear history' },
+    cache: { title: 'Saved champions', help: 'Remove incorrect entries from the suggestion cache.', remove: 'Remove {name} from cache' },
     messages: {
       teamNeedChampions: '{label}: add between 1 and 4 champions.', teamMaxChampions: '{label}: maximum 4 champions.', teamInvalid: '{label} is invalid.',
       playerTeam: 'Player team', winRequired: 'Please indicate whether the fight is a win or a loss.',
@@ -89,6 +92,15 @@ function loadLanguage() {
 
 function saveLanguage(lang) {
   localStorage.setItem(LANGUAGE_KEY, lang);
+}
+
+function escapeHtml(value) {
+  return String(value)
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('\"', '&quot;')
+    .replaceAll("'", '&#39;');
 }
 
 function t(path, vars = {}) {
@@ -371,6 +383,32 @@ function renderOpponentStats(fights) {
   document.getElementById('opponents-lost').innerHTML = buildTable([t('stats.opponentTeam'), t('stats.losses')], lostRows);
 }
 
+function removeChampionFromCache(championName) {
+  const nextPool = loadChampionPool().filter((champion) => champion !== championName);
+  saveChampionPool(nextPool);
+}
+
+function renderChampionCache() {
+  if (!championCacheList) {
+    return;
+  }
+
+  const champions = loadChampionPool().sort((a, b) => a.localeCompare(b));
+  if (!champions.length) {
+    championCacheList.innerHTML = `<p class="empty">${t('common.notEnoughData')}</p>`;
+    return;
+  }
+
+  championCacheList.innerHTML = champions
+    .map(
+      (champion) => `<div class="cache-chip">
+        <span class="cache-chip-name">${escapeHtml(champion)}</span>
+        <button type="button" class="cache-remove-btn" data-champion-name="${encodeURIComponent(champion)}" aria-label="${escapeHtml(t('cache.remove', { name: champion }))}" title="${escapeHtml(t('cache.remove', { name: champion }))}">×</button>
+      </div>`,
+    )
+    .join('');
+}
+
 function renderChampionSuggestions(fights) {
   const champions = new Set(loadChampionPool());
 
@@ -389,6 +427,7 @@ function renderChampionSuggestions(fights) {
 function renderAllStats() {
   const fights = loadFights();
   renderChampionSuggestions(fights);
+  renderChampionCache();
   renderGlobalStats(fights);
   renderBestTeams(fights);
   renderSynergies(fights);
@@ -495,6 +534,7 @@ if (initialLockData.locked && initialLockData.team.length) {
       }
       upsertChampionPoolFromTeams([team]);
       renderChampionSuggestions(loadFights());
+      renderChampionCache();
     });
   });
 });
@@ -551,6 +591,25 @@ clearFightsBtn.addEventListener('click', () => {
   renderAllStats();
 });
 
+
+
+if (championCacheList) {
+  championCacheList.addEventListener('click', (event) => {
+    const removeButton = event.target.closest('.cache-remove-btn');
+    if (!removeButton) {
+      return;
+    }
+
+    const championName = removeButton.dataset.championName;
+    if (!championName) {
+      return;
+    }
+
+    removeChampionFromCache(decodeURIComponent(championName));
+    renderChampionSuggestions(loadFights());
+    renderChampionCache();
+  });
+}
 
 if (languageSelect) {
   languageSelect.value = currentLanguage;
