@@ -262,6 +262,57 @@ td {
   font-size: 0.9rem;
 }
 
+.autocomplete-dropdown {
+  position: absolute;
+  z-index: 999;
+  max-height: 240px;
+  overflow-y: auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: #0f172a;
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.35);
+}
+
+.autocomplete-item {
+  display: flex;
+  align-items: center;
+  border-bottom: 1px solid #1f2937;
+}
+
+.autocomplete-item:last-child {
+  border-bottom: none;
+}
+
+.autocomplete-pick {
+  flex: 1;
+  border: none;
+  text-align: left;
+  padding: 0.55rem 0.7rem;
+  background: transparent;
+  color: var(--text);
+  cursor: pointer;
+}
+
+.autocomplete-pick:hover {
+  background: #162033;
+}
+
+.autocomplete-remove {
+  border: none;
+  border-left: 1px solid #1f2937;
+  width: 2rem;
+  height: 2rem;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+  font-size: 0.95rem;
+}
+
+.autocomplete-remove:hover {
+  color: var(--danger);
+  background: rgba(239, 68, 68, 0.12);
+}
+
 @media (max-width: 800px) {
   .form-grid,
   .stats,

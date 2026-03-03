@@ -20,7 +20,6 @@ const playerTeamSlots = [1, 2, 3, 4].map((slot) => document.getElementById(`play
 const opponentTeamSlots = [1, 2, 3, 4].map((slot) => document.getElementById(`opponent-slot-${slot}`));
 const lockPlayerTeamInput = document.getElementById('lock-player-team');
 const formError = document.getElementById('form-error');
-const championOptions = document.getElementById('champion-options');
 const exportBtn = document.getElementById('export-btn');
 const importFileInput = document.getElementById('import-file');
 const clearFightsBtn = document.getElementById('clear-fights-btn');
@@ -89,6 +88,15 @@ function loadLanguage() {
 
 function saveLanguage(lang) {
   localStorage.setItem(LANGUAGE_KEY, lang);
+}
+
+function escapeHtml(value) {
+  return String(value)
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('\"', '&quot;')
+    .replaceAll("'", '&#39;');
 }
 
 function t(path, vars = {}) {
@@ -201,33 +209,121 @@ function fillTeamSlots(inputs, team) {
   });
 }
 
-function renderChampionOptions(champions, token = '') {
+function getFilteredChampions(token = '') {
   const normalizedToken = titleCase(token.trim());
-  const filtered = normalizedToken
+  const champions = loadChampionPool().sort((a, b) => a.localeCompare(b));
+  return normalizedToken
     ? champions.filter((champion) => champion.startsWith(normalizedToken))
     : champions;
+}
 
-  championOptions.innerHTML = filtered
+const autocompleteDropdown = document.createElement('div');
+autocompleteDropdown.className = 'autocomplete-dropdown';
+autocompleteDropdown.hidden = true;
+document.body.appendChild(autocompleteDropdown);
+
+let activeAutocompleteInput = null;
+
+function hideAutocompleteDropdown() {
+  autocompleteDropdown.hidden = true;
+  autocompleteDropdown.innerHTML = '';
+}
+
+function showAutocompleteDropdown(input) {
+  const champions = getFilteredChampions(input.value);
+  if (!champions.length) {
+    hideAutocompleteDropdown();
+    return;
+  }
+
+  autocompleteDropdown.innerHTML = champions
     .slice(0, 50)
-    .map((champion) => `<option value="${champion}"></option>`)
+    .map(
+      (champion) => `<div class="autocomplete-item">
+        <button type="button" class="autocomplete-pick" data-champion-name="${encodeURIComponent(champion)}">${escapeHtml(champion)}</button>
+        <button type="button" class="autocomplete-remove" data-remove-champion="${encodeURIComponent(champion)}" aria-label="×" title="×">×</button>
+      </div>`,
+    )
     .join('');
+
+  const rect = input.getBoundingClientRect();
+  autocompleteDropdown.style.left = `${rect.left + window.scrollX}px`;
+  autocompleteDropdown.style.top = `${rect.bottom + window.scrollY + 4}px`;
+  autocompleteDropdown.style.width = `${rect.width}px`;
+  autocompleteDropdown.hidden = false;
 }
 
 function attachTeamAutocomplete(input) {
   input.addEventListener('focus', () => {
-    const champions = loadChampionPool().sort((a, b) => a.localeCompare(b));
-    renderChampionOptions(champions, input.value);
+    activeAutocompleteInput = input;
+    showAutocompleteDropdown(input);
   });
 
   input.addEventListener('input', () => {
-    const champions = loadChampionPool().sort((a, b) => a.localeCompare(b));
-    renderChampionOptions(champions, input.value);
+    activeAutocompleteInput = input;
+    showAutocompleteDropdown(input);
   });
 
   input.addEventListener('change', () => {
     input.value = titleCase(input.value.trim());
   });
 }
+
+autocompleteDropdown.addEventListener('mousedown', (event) => {
+  event.preventDefault();
+});
+
+autocompleteDropdown.addEventListener('click', (event) => {
+  if (!activeAutocompleteInput) {
+    return;
+  }
+
+  const pickButton = event.target.closest('.autocomplete-pick');
+  if (pickButton) {
+    const champion = pickButton.dataset.championName;
+    if (!champion) {
+      return;
+    }
+    activeAutocompleteInput.value = decodeURIComponent(champion);
+    activeAutocompleteInput.dispatchEvent(new window.Event('change', { bubbles: true }));
+    hideAutocompleteDropdown();
+    return;
+  }
+
+  const removeButton = event.target.closest('.autocomplete-remove');
+  if (removeButton) {
+    const champion = removeButton.dataset.removeChampion;
+    if (!champion) {
+      return;
+    }
+    removeChampionFromCache(decodeURIComponent(champion));
+    showAutocompleteDropdown(activeAutocompleteInput);
+  }
+});
+
+document.addEventListener('click', (event) => {
+  if (!activeAutocompleteInput) {
+    return;
+  }
+
+  const clickedInsideInput = event.target === activeAutocompleteInput;
+  const clickedInsideDropdown = autocompleteDropdown.contains(event.target);
+  if (!clickedInsideInput && !clickedInsideDropdown) {
+    hideAutocompleteDropdown();
+  }
+});
+
+window.addEventListener('resize', () => {
+  if (activeAutocompleteInput && !autocompleteDropdown.hidden) {
+    showAutocompleteDropdown(activeAutocompleteInput);
+  }
+});
+
+window.addEventListener('scroll', () => {
+  if (activeAutocompleteInput && !autocompleteDropdown.hidden) {
+    showAutocompleteDropdown(activeAutocompleteInput);
+  }
+}, true);
 
 function upsertChampionPoolFromTeams(teams) {
   const existing = new Set(loadChampionPool());
@@ -371,6 +467,12 @@ function renderOpponentStats(fights) {
   document.getElementById('opponents-lost').innerHTML = buildTable([t('stats.opponentTeam'), t('stats.losses')], lostRows);
 }
 
+function removeChampionFromCache(championName) {
+  const nextPool = loadChampionPool().filter((champion) => champion !== championName);
+  saveChampionPool(nextPool);
+}
+
+
 function renderChampionSuggestions(fights) {
   const champions = new Set(loadChampionPool());
 
@@ -383,7 +485,6 @@ function renderChampionSuggestions(fights) {
 
   const sortedChampions = [...champions].sort((a, b) => a.localeCompare(b));
   saveChampionPool(sortedChampions);
-  renderChampionOptions(sortedChampions);
 }
 
 function renderAllStats() {
@@ -485,20 +586,6 @@ if (initialLockData.locked && initialLockData.team.length) {
     slot.readOnly = true;
   });
 }
-
-[playerTeamSlots, opponentTeamSlots].forEach((teamSlots) => {
-  teamSlots.forEach((input) => {
-    input.addEventListener('change', () => {
-      const team = parseTeamFromSlots(teamSlots);
-      if (!team.length) {
-        return;
-      }
-      upsertChampionPoolFromTeams([team]);
-      renderChampionSuggestions(loadFights());
-    });
-  });
-});
-
 exportBtn.addEventListener('click', () => {
   const fights = loadFights();
   const blob = new Blob([JSON.stringify(fights, null, 2)], { type: 'application/json' });
@@ -550,6 +637,7 @@ clearFightsBtn.addEventListener('click', () => {
   formError.textContent = '';
   renderAllStats();
 });
+
 
 
 if (languageSelect) {
