@@ -119,6 +119,15 @@ input[type='text'] {
   background: var(--accent-hover);
 }
 
+.btn.danger {
+  background: #3b1217;
+  border-color: #7f1d1d;
+}
+
+.btn.danger:hover {
+  background: #4c171d;
+}
+
 .stats {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));

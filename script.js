@@ -15,6 +15,7 @@ const formError = document.getElementById('form-error');
 const championOptions = document.getElementById('champion-options');
 const exportBtn = document.getElementById('export-btn');
 const importFileInput = document.getElementById('import-file');
+const clearFightsBtn = document.getElementById('clear-fights-btn');
 
 function titleCase(value) {
   return value
@@ -682,6 +683,26 @@ importFileInput.addEventListener('change', async (event) => {
   } finally {
     importFileInput.value = '';
   }
+});
+
+clearFightsBtn.addEventListener('click', () => {
+  const hasFights = loadFights().length > 0;
+  if (!hasFights) {
+    formError.textContent = 'Historique déjà vide.';
+    return;
+  }
+
+  const confirmReset = window.confirm(
+    "Supprimer tout l'historique de combat ? Les champions sauvegardés seront conservés.",
+  );
+
+  if (!confirmReset) {
+    return;
+  }
+
+  saveFights([]);
+  formError.textContent = '';
+  renderAllStats();
 });
 
 renderAllStats();
