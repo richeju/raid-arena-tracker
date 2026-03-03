@@ -157,18 +157,6 @@ function validateTeam(team, label, required) {
   }
 }
 
-function validateKnownChampions(team, label) {
-  if (!team.length) {
-    return;
-  }
-
-  const knownChampions = new Set(loadChampionPool());
-  const unknownChampions = team.filter((champion) => !knownChampions.has(champion));
-  if (unknownChampions.length) {
-    throw new Error(t('messages.unknownChampions', { label, names: unknownChampions.join(', ') }));
-  }
-}
-
 function loadFights() {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
@@ -543,10 +531,6 @@ form.addEventListener('submit', (event) => {
     const opponentTeam = parseTeamFromSlots(opponentTeamSlots);
     validateTeam(playerTeam, t('messages.playerTeam'), true);
     validateTeam(opponentTeam, t('stats.opponentTeam'), false);
-    validateKnownChampions(playerTeam, t('messages.playerTeam'));
-    validateKnownChampions(opponentTeam, t('stats.opponentTeam'));
-
-
     const winChoice = form.querySelector('input[name="win"]:checked');
     if (!winChoice) {
       throw new Error(t('messages.winRequired'));
@@ -592,7 +576,6 @@ lockPlayerTeamInput.addEventListener('change', () => {
   try {
     const team = parseTeamFromSlots(playerTeamSlots);
     validateTeam(team, t('messages.playerTeam'), true);
-    validateKnownChampions(team, t('messages.playerTeam'));
     const normalizedTeam = team.map(titleCase);
     savePlayerTeamLock({ locked: true, team: normalizedTeam });
     fillTeamSlots(playerTeamSlots, normalizedTeam);
