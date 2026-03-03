@@ -166,6 +166,12 @@ input[type='text'] {
   color: var(--danger);
 }
 
+.memory-indicator {
+  margin: 0 0 0.9rem;
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
 .btn {
   cursor: pointer;
   padding: 0.7rem 1rem;

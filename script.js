@@ -26,6 +26,7 @@ const syncChampionsBtn = document.getElementById('sync-champions-btn');
 const importFileInput = document.getElementById('import-file');
 const clearFightsBtn = document.getElementById('clear-fights-btn');
 const languageSelect = document.getElementById('language-select');
+const championMemoryIndicator = document.getElementById('champion-memory-indicator');
 
 
 const translations = {
@@ -35,7 +36,9 @@ const translations = {
     form: {
       title: 'Ajouter combat', playerTeamLabel: 'Team joueur (1 à 4 champions)', playerTeamPlaceholder: 'Arbiter, Duchess Lilitu, Mithrala, Rotos',
       lockTeam: 'Verrouiller mon équipe (réutilisée automatiquement)', opponentTeamLabel: 'Team adverse (optionnel, 1 à 4)', opponentTeamPlaceholder: 'Siphi, Rotos',
-      winLegend: 'Victoire ?', submit: 'Ajouter'
+      winLegend: 'Victoire ?', submit: 'Ajouter',
+      memoryCount: '{count} persos en mémoire.',
+      memoryPreview: 'Derniers mémorisés : {names}'
     },
     common: { yes: 'Oui', no: 'Non', na: 'N/A', notEnoughData: 'Pas assez de données.' },
     stats: {
@@ -63,7 +66,9 @@ const translations = {
     form: {
       title: 'Add fight', playerTeamLabel: 'Player team (1 to 4 champions)', playerTeamPlaceholder: 'Arbiter, Duchess Lilitu, Mithrala, Rotos',
       lockTeam: 'Lock my team (reused automatically)', opponentTeamLabel: 'Opponent team (optional, 1 to 4)', opponentTeamPlaceholder: 'Siphi, Rotos',
-      winLegend: 'Win?', submit: 'Add'
+      winLegend: 'Win?', submit: 'Add',
+      memoryCount: '{count} champions in memory.',
+      memoryPreview: 'Recently stored: {names}'
     },
     common: { yes: 'Yes', no: 'No', na: 'N/A', notEnoughData: 'Not enough data.' },
     stats: {
@@ -511,6 +516,20 @@ async function syncChampionPoolFromWeb() {
   }
 }
 
+function renderChampionMemoryIndicator() {
+  if (!championMemoryIndicator) {
+    return;
+  }
+
+  const champions = loadChampionPool();
+  const recent = champions.slice(-4);
+  const countText = t('form.memoryCount', { count: champions.length });
+
+  championMemoryIndicator.textContent = recent.length
+    ? `${countText} ${t('form.memoryPreview', { names: recent.join(', ') })}`
+    : countText;
+}
+
 function renderAllStats() {
   const fights = loadFights();
   renderChampionSuggestions(fights);
@@ -518,6 +537,7 @@ function renderAllStats() {
   renderBestTeams(fights);
   renderSynergies(fights);
   renderOpponentStats(fights);
+  renderChampionMemoryIndicator();
 }
 
 form.addEventListener('submit', (event) => {
