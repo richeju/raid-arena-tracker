@@ -112,12 +112,42 @@ input[type='text'] {
 
 .team-slots {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 0.6rem;
+}
+
+#player-team-slots {
+  grid-template-areas:
+    '. slot2 .'
+    'slot4 . slot1'
+    '. slot3 .';
+}
+
+#opponent-team-slots {
+  grid-template-areas:
+    '. slot2 .'
+    'slot1 . slot4'
+    '. slot3 .';
 }
 
 .team-slots input[type='text'] {
   margin-top: 0;
+}
+
+.team-slot-1 {
+  grid-area: slot1;
+}
+
+.team-slot-2 {
+  grid-area: slot2;
+}
+
+.team-slot-3 {
+  grid-area: slot3;
+}
+
+.team-slot-4 {
+  grid-area: slot4;
 }
 
 .radio-group {
@@ -238,6 +268,7 @@ td {
   .stats-grid,
   .team-slots {
     grid-template-columns: 1fr;
+    grid-template-areas: none;
   }
 
   .container {
