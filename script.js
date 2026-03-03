@@ -592,6 +592,17 @@ lockPlayerTeamInput.addEventListener('change', () => {
     upsertChampionPoolFromSlotInput(slot);
   });
 
+  slot.addEventListener('keydown', (event) => {
+    if (event.key !== 'Enter' || slot.readOnly) {
+      return;
+    }
+
+    event.preventDefault();
+    slot.value = titleCase(slot.value.trim());
+    upsertChampionPoolFromSlotInput(slot);
+    showAutocompleteDropdown(slot);
+  });
+
   attachTeamAutocomplete(slot);
 });
 
