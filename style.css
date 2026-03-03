@@ -103,6 +103,23 @@ input[type='text'] {
   color: var(--text);
 }
 
+.team-fieldset {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 0.75rem;
+  margin: 0;
+}
+
+.team-slots {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.6rem;
+}
+
+.team-slots input[type='text'] {
+  margin-top: 0;
+}
+
 .radio-group {
   margin: 1rem 0;
   border: 1px solid var(--border);
@@ -218,7 +235,8 @@ td {
 @media (max-width: 800px) {
   .form-grid,
   .stats,
-  .stats-grid {
+  .stats-grid,
+  .team-slots {
     grid-template-columns: 1fr;
   }
 
