@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Raid icon">
+  <defs>
+    <linearGradient id="bg" x1="0" x2="1" y1="0" y2="1">
+      <stop offset="0%" stop-color="#1c1f2b" />
+      <stop offset="100%" stop-color="#2f3a63" />
+    </linearGradient>
+    <linearGradient id="gem" x1="0" x2="1" y1="0" y2="1">
+      <stop offset="0%" stop-color="#7af5ff" />
+      <stop offset="100%" stop-color="#3ec5ff" />
+    </linearGradient>
+  </defs>
+  <rect width="64" height="64" rx="14" fill="url(#bg)" />
+  <path d="M32 10 48 20v13c0 11-7 18-16 22-9-4-16-11-16-22V20z" fill="#0f1322" stroke="#8ab6ff" stroke-width="2.5" />
+  <path d="m32 16 10 6v11c0 7-4 12-10 15-6-3-10-8-10-15V22z" fill="url(#gem)" opacity=".92" />
+  <path d="M32 20v24M21 31h22" stroke="#ffffff" stroke-width="3.5" stroke-linecap="round" />
+</svg>
