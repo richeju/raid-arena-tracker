@@ -11,6 +11,7 @@ module.exports = [
         indexedDB: 'readonly',
         URL: 'readonly',
         Blob: 'readonly',
+        fetch: 'readonly',
         module: 'readonly',
         require: 'readonly',
         globalThis: 'readonly',

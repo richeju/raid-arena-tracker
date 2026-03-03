@@ -5,6 +5,7 @@ const BACKUP_KEY = 'latest';
 const CHAMPION_POOL_KEY = 'raid_arena_champion_pool';
 const PLAYER_TEAM_LOCK_KEY = 'raid_arena_player_team_lock';
 const LANGUAGE_KEY = 'raid_arena_language';
+const REMOTE_CHAMPIONS_URL = 'https://raw.githubusercontent.com/McRadane/raid-data/master/champions-base-info.json';
 
 const {
   titleCase,
@@ -21,6 +22,7 @@ const opponentTeamSlots = [1, 2, 3, 4].map((slot) => document.getElementById(`op
 const lockPlayerTeamInput = document.getElementById('lock-player-team');
 const formError = document.getElementById('form-error');
 const exportBtn = document.getElementById('export-btn');
+const syncChampionsBtn = document.getElementById('sync-champions-btn');
 const importFileInput = document.getElementById('import-file');
 const clearFightsBtn = document.getElementById('clear-fights-btn');
 const languageSelect = document.getElementById('language-select');
@@ -43,13 +45,16 @@ const translations = {
       team: 'Team', wr: 'WR', fights: 'Combats', pair: 'Paire', deltaVsGlobal: 'Delta vs global', opponentTeam: 'Team adverse',
       wins: 'Victoires', losses: 'Défaites'
     },
-    actions: { export: 'Exporter JSON', import: 'Importer JSON', clear: "Nettoyer l'historique" },
+    actions: { syncChampions: 'Mettre à jour les champions (web)', export: 'Exporter JSON', import: 'Importer JSON', clear: "Nettoyer l'historique" },
     messages: {
       teamNeedChampions: '{label} : ajoute entre 1 et 4 champions.', teamMaxChampions: '{label} : maximum 4 champions.', teamInvalid: '{label} invalide.',
       playerTeam: 'Team joueur', winRequired: 'Indique si le combat est une victoire ou une défaite.',
       lockImpossible: 'Impossible de verrouiller : {error}', importedJsonMustArray: 'Le JSON importé doit être un tableau de combats.',
       importImpossible: 'Import impossible : {error}', historyAlreadyEmpty: 'Historique déjà vide.',
-      clearConfirm: "Supprimer tout l'historique de combat ? Les champions sauvegardés seront conservés."
+      clearConfirm: "Supprimer tout l'historique de combat ? Les champions sauvegardés seront conservés.",
+      syncStarted: 'Synchronisation des champions en cours...',
+      syncSuccess: '{count} champions récupérés depuis le web.',
+      syncFailed: 'Échec de la synchronisation des champions : {error}'
     },
   },
   en: {
@@ -68,13 +73,16 @@ const translations = {
       team: 'Team', wr: 'WR', fights: 'Fights', pair: 'Pair', deltaVsGlobal: 'Delta vs global', opponentTeam: 'Opponent team',
       wins: 'Wins', losses: 'Losses'
     },
-    actions: { export: 'Export JSON', import: 'Import JSON', clear: 'Clear history' },
+    actions: { syncChampions: 'Update champions from web', export: 'Export JSON', import: 'Import JSON', clear: 'Clear history' },
     messages: {
       teamNeedChampions: '{label}: add between 1 and 4 champions.', teamMaxChampions: '{label}: maximum 4 champions.', teamInvalid: '{label} is invalid.',
       playerTeam: 'Player team', winRequired: 'Please indicate whether the fight is a win or a loss.',
       lockImpossible: 'Cannot lock team: {error}', importedJsonMustArray: 'Imported JSON must be an array of fights.',
       importImpossible: 'Import failed: {error}', historyAlreadyEmpty: 'History is already empty.',
-      clearConfirm: 'Delete all fight history? Saved champions will be kept.'
+      clearConfirm: 'Delete all fight history? Saved champions will be kept.',
+      syncStarted: 'Champion sync in progress...',
+      syncSuccess: '{count} champions fetched from the web.',
+      syncFailed: 'Champion sync failed: {error}'
     },
   },
 };
@@ -239,10 +247,7 @@ function showAutocompleteDropdown(input) {
   autocompleteDropdown.innerHTML = champions
     .slice(0, 50)
     .map(
-      (champion) => `<div class="autocomplete-item">
-        <button type="button" class="autocomplete-pick" data-champion-name="${encodeURIComponent(champion)}">${escapeHtml(champion)}</button>
-        <button type="button" class="autocomplete-remove" data-remove-champion="${encodeURIComponent(champion)}" aria-label="×" title="×">×</button>
-      </div>`,
+      (champion) => `<div class="autocomplete-item"><button type="button" class="autocomplete-pick" data-champion-name="${encodeURIComponent(champion)}">${escapeHtml(champion)}</button></div>`,
     )
     .join('');
 
@@ -288,16 +293,6 @@ autocompleteDropdown.addEventListener('click', (event) => {
     activeAutocompleteInput.dispatchEvent(new window.Event('change', { bubbles: true }));
     hideAutocompleteDropdown();
     return;
-  }
-
-  const removeButton = event.target.closest('.autocomplete-remove');
-  if (removeButton) {
-    const champion = removeButton.dataset.removeChampion;
-    if (!champion) {
-      return;
-    }
-    removeChampionFromCache(decodeURIComponent(champion));
-    showAutocompleteDropdown(activeAutocompleteInput);
   }
 });
 
@@ -476,12 +471,6 @@ function renderOpponentStats(fights) {
   document.getElementById('opponents-lost').innerHTML = buildTable([t('stats.opponentTeam'), t('stats.losses')], lostRows);
 }
 
-function removeChampionFromCache(championName) {
-  const nextPool = loadChampionPool().filter((champion) => champion !== championName);
-  saveChampionPool(nextPool);
-}
-
-
 function renderChampionSuggestions(fights) {
   const champions = new Set(loadChampionPool());
 
@@ -494,6 +483,32 @@ function renderChampionSuggestions(fights) {
 
   const sortedChampions = [...champions].sort((a, b) => a.localeCompare(b));
   saveChampionPool(sortedChampions);
+}
+
+async function syncChampionPoolFromWeb() {
+  formError.textContent = t('messages.syncStarted');
+
+  const response = await fetch(REMOTE_CHAMPIONS_URL, { cache: 'no-store' });
+  if (!response.ok) {
+    throw new Error(`HTTP ${response.status}`);
+  }
+
+  const payload = await response.json();
+  const remoteChampions = Object.keys(payload || {})
+    .map(titleCase)
+    .filter(Boolean);
+
+  if (!remoteChampions.length) {
+    throw new Error('No champions found in remote source');
+  }
+
+  const merged = [...new Set([...loadChampionPool(), ...remoteChampions])].sort((a, b) => a.localeCompare(b));
+  saveChampionPool(merged);
+  formError.textContent = t('messages.syncSuccess', { count: remoteChampions.length });
+
+  if (activeAutocompleteInput && !autocompleteDropdown.hidden) {
+    showAutocompleteDropdown(activeAutocompleteInput);
+  }
 }
 
 function renderAllStats() {
@@ -664,6 +679,21 @@ clearFightsBtn.addEventListener('click', () => {
   formError.textContent = '';
   renderAllStats();
 });
+
+if (syncChampionsBtn) {
+  syncChampionsBtn.addEventListener('click', async () => {
+    syncChampionsBtn.disabled = true;
+    formError.textContent = '';
+
+    try {
+      await syncChampionPoolFromWeb();
+    } catch (error) {
+      formError.textContent = t('messages.syncFailed', { error: error.message });
+    } finally {
+      syncChampionsBtn.disabled = false;
+    }
+  });
+}
 
 
 
