@@ -337,6 +337,15 @@ function upsertChampionPoolFromTeams(teams) {
   saveChampionPool([...existing].sort((a, b) => a.localeCompare(b)));
 }
 
+function upsertChampionPoolFromSlotInput(input) {
+  const championName = titleCase(input.value.trim());
+  if (!championName) {
+    return;
+  }
+
+  upsertChampionPoolFromTeams([[championName]]);
+}
+
 function saveFights(fights) {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(fights));
   void saveBackupSnapshot(fights);
@@ -573,6 +582,14 @@ lockPlayerTeamInput.addEventListener('change', () => {
       return;
     }
     slot.value = titleCase(slot.value.trim());
+    upsertChampionPoolFromSlotInput(slot);
+  });
+
+  slot.addEventListener('change', () => {
+    if (slot.readOnly) {
+      return;
+    }
+    upsertChampionPoolFromSlotInput(slot);
   });
 
   attachTeamAutocomplete(slot);
