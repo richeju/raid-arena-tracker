@@ -582,14 +582,13 @@ lockPlayerTeamInput.addEventListener('change', () => {
       return;
     }
     slot.value = titleCase(slot.value.trim());
-    upsertChampionPoolFromSlotInput(slot);
   });
 
   slot.addEventListener('change', () => {
     if (slot.readOnly) {
       return;
     }
-    upsertChampionPoolFromSlotInput(slot);
+    slot.value = titleCase(slot.value.trim());
   });
 
   slot.addEventListener('keydown', (event) => {
