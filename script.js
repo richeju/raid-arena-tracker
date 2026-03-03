@@ -137,7 +137,7 @@ function validateTeam(team, label, required) {
 }
 
 function getTeamKey(team) {
-  return [...team].map(titleCase).sort((a, b) => a.localeCompare(b)).join(',');
+  return [...team].map(titleCase).join(',');
 }
 
 function parseRank(value) {
