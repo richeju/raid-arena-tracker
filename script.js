@@ -5,7 +5,7 @@ const BACKUP_KEY = 'latest';
 const CHAMPION_POOL_KEY = 'raid_arena_champion_pool';
 const PLAYER_TEAM_LOCK_KEY = 'raid_arena_player_team_lock';
 const LANGUAGE_KEY = 'raid_arena_language';
-const REMOTE_CHAMPIONS_URL = 'https://raw.githubusercontent.com/McRadane/raid-data/master/champions-base-info.json';
+const REMOTE_CHAMPIONS_URL = 'https://raw.githubusercontent.com/McRadane/raid-data/master/champions.json';
 
 const {
   titleCase,
@@ -154,6 +154,18 @@ function validateTeam(team, label, required) {
   }
   if (!required && team.length !== 0 && team.length < 1) {
     throw new Error(t('messages.teamInvalid', { label }));
+  }
+}
+
+function validateKnownChampions(team, label) {
+  if (!team.length) {
+    return;
+  }
+
+  const knownChampions = new Set(loadChampionPool());
+  const unknownChampions = team.filter((champion) => !knownChampions.has(champion));
+  if (unknownChampions.length) {
+    throw new Error(t('messages.unknownChampions', { label, names: unknownChampions.join(', ') }));
   }
 }
 
@@ -457,20 +469,6 @@ function renderOpponentStats(fights) {
   document.getElementById('opponents-lost').innerHTML = buildTable([t('stats.opponentTeam'), t('stats.losses')], lostRows);
 }
 
-function renderChampionSuggestions(fights) {
-  const champions = new Set(loadChampionPool());
-
-  fights.forEach((fight) => {
-    [...(fight.player_team || []), ...(fight.opponent_team || [])]
-      .map(titleCase)
-      .filter(Boolean)
-      .forEach((champion) => champions.add(champion));
-  });
-
-  const sortedChampions = [...champions].sort((a, b) => a.localeCompare(b));
-  saveChampionPool(sortedChampions);
-}
-
 async function syncChampionPoolFromWeb() {
   formError.textContent = t('messages.syncStarted');
 
@@ -480,9 +478,8 @@ async function syncChampionPoolFromWeb() {
   }
 
   const payload = await response.json();
-  const remoteChampions = Object.keys(payload || {})
-    .map(titleCase)
-    .filter(Boolean);
+  const rawChampions = Array.isArray(payload) ? payload : Object.keys(payload || {});
+  const remoteChampions = [...new Set(rawChampions.map(titleCase).filter(Boolean))];
 
   if (!remoteChampions.length) {
     throw new Error('No champions found in remote source');
@@ -513,7 +510,6 @@ function renderChampionMemoryIndicator() {
 
 function renderAllStats() {
   const fights = loadFights();
-  renderChampionSuggestions(fights);
   renderGlobalStats(fights);
   renderBestTeams(fights);
   renderSynergies(fights);
@@ -531,6 +527,8 @@ form.addEventListener('submit', (event) => {
     const opponentTeam = parseTeamFromSlots(opponentTeamSlots);
     validateTeam(playerTeam, t('messages.playerTeam'), true);
     validateTeam(opponentTeam, t('stats.opponentTeam'), false);
+    validateKnownChampions(playerTeam, t('messages.playerTeam'));
+    validateKnownChampions(opponentTeam, t('stats.opponentTeam'));
     const winChoice = form.querySelector('input[name="win"]:checked');
     if (!winChoice) {
       throw new Error(t('messages.winRequired'));
@@ -576,6 +574,7 @@ lockPlayerTeamInput.addEventListener('change', () => {
   try {
     const team = parseTeamFromSlots(playerTeamSlots);
     validateTeam(team, t('messages.playerTeam'), true);
+    validateKnownChampions(team, t('messages.playerTeam'));
     const normalizedTeam = team.map(titleCase);
     savePlayerTeamLock({ locked: true, team: normalizedTeam });
     fillTeamSlots(playerTeamSlots, normalizedTeam);
