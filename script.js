@@ -586,20 +586,6 @@ if (initialLockData.locked && initialLockData.team.length) {
     slot.readOnly = true;
   });
 }
-
-[playerTeamSlots, opponentTeamSlots].forEach((teamSlots) => {
-  teamSlots.forEach((input) => {
-    input.addEventListener('change', () => {
-      const team = parseTeamFromSlots(teamSlots);
-      if (!team.length) {
-        return;
-      }
-      upsertChampionPoolFromTeams([team]);
-      renderChampionSuggestions(loadFights());
-        });
-  });
-});
-
 exportBtn.addEventListener('click', () => {
   const fights = loadFights();
   const blob = new Blob([JSON.stringify(fights, null, 2)], { type: 'application/json' });
