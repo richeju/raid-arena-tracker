@@ -4,6 +4,7 @@ const BACKUP_STORE_NAME = 'snapshots';
 const BACKUP_KEY = 'latest';
 const CHAMPION_POOL_KEY = 'raid_arena_champion_pool';
 const PLAYER_TEAM_LOCK_KEY = 'raid_arena_player_team_lock';
+const LANGUAGE_KEY = 'raid_arena_language';
 
 const form = document.getElementById('fight-form');
 const playerTeamInput = document.getElementById('player-team');
@@ -16,6 +17,103 @@ const championOptions = document.getElementById('champion-options');
 const exportBtn = document.getElementById('export-btn');
 const importFileInput = document.getElementById('import-file');
 const clearFightsBtn = document.getElementById('clear-fights-btn');
+const languageSelect = document.getElementById('language-select');
+
+
+const translations = {
+  fr: {
+    pageTitle: 'Raid Arena Tracker - Classic 4v4',
+    app: { title: 'Raid Arena Tracker - Classic 4v4', language: 'Langue', subtitle: 'Suivi local de tes combats (stockage 100% navigateur)', backupInfo: 'Sauvegarde automatique dans le profil navigateur Windows (localStorage + backup interne)' },
+    form: {
+      title: 'Ajouter combat', playerTeamLabel: 'Team joueur (1 à 4 champions)', playerTeamPlaceholder: 'Arbiter, Duchess Lilitu, Mithrala, Rotos',
+      lockTeam: 'Verrouiller mon équipe (réutilisée automatiquement)', opponentTeamLabel: 'Team adverse (optionnel, 1 à 4)', opponentTeamPlaceholder: 'Siphi, Rotos',
+      playerRankLabel: 'Rank joueur', playerRankPlaceholder: 'G3, Plat, S1, B4', opponentRankLabel: 'Rank adverse (optionnel)', opponentRankPlaceholder: 'G5, Plat',
+      winLegend: 'Victoire ?', submit: 'Ajouter'
+    },
+    common: { yes: 'Oui', no: 'Non', na: 'N/A', notEnoughData: 'Pas assez de données.' },
+    stats: {
+      globalTitle: 'Global', bestTeamsTitle: 'Meilleures teams (min 5 combats)', synergyTitle: 'Synergies (Top 5 paires, min 8 combats)',
+      opponentsTitle: 'Teams adverses', topBeaten: 'Top 5 battues', topLost: 'Top 5 qui te battent', ranksTitle: 'Ranks',
+      totalFights: 'Total combats', globalWinrate: 'Winrate global', currentStreak: 'Streak actuelle', lastTen: 'Derniers 10',
+      team: 'Team', wr: 'WR', fights: 'Combats', pair: 'Paire', deltaVsGlobal: 'Delta vs global', opponentTeam: 'Team adverse',
+      wins: 'Victoires', losses: 'Défaites', bestRank: 'Meilleur rank atteint', wrVsStronger: 'WR vs plus fort', wrVsLower: 'WR vs plus faible'
+    },
+    actions: { export: 'Exporter JSON', import: 'Importer JSON', clear: "Nettoyer l'historique" },
+    messages: {
+      teamNeedChampions: '{label} : ajoute entre 1 et 4 champions.', teamMaxChampions: '{label} : maximum 4 champions.', teamInvalid: '{label} invalide.',
+      playerTeam: 'Team joueur', playerRankRequired: 'Rank joueur obligatoire.', winRequired: 'Indique si le combat est une victoire ou une défaite.',
+      lockImpossible: 'Impossible de verrouiller : {error}', importedJsonMustArray: 'Le JSON importé doit être un tableau de combats.',
+      importImpossible: 'Import impossible : {error}', historyAlreadyEmpty: 'Historique déjà vide.',
+      clearConfirm: "Supprimer tout l'historique de combat ? Les champions sauvegardés seront conservés."
+    },
+    ranks: { bronze: 'Bronze', silver: 'Silver', gold: 'Gold', platinum: 'Platinum' }
+  },
+  en: {
+    pageTitle: 'Raid Arena Tracker - Classic 4v4',
+    app: { title: 'Raid Arena Tracker - Classic 4v4', language: 'Language', subtitle: 'Local fight tracking (100% browser storage)', backupInfo: 'Automatic backup in the browser profile (localStorage + internal backup)' },
+    form: {
+      title: 'Add fight', playerTeamLabel: 'Player team (1 to 4 champions)', playerTeamPlaceholder: 'Arbiter, Duchess Lilitu, Mithrala, Rotos',
+      lockTeam: 'Lock my team (reused automatically)', opponentTeamLabel: 'Opponent team (optional, 1 to 4)', opponentTeamPlaceholder: 'Siphi, Rotos',
+      playerRankLabel: 'Player rank', playerRankPlaceholder: 'G3, Plat, S1, B4', opponentRankLabel: 'Opponent rank (optional)', opponentRankPlaceholder: 'G5, Plat',
+      winLegend: 'Win?', submit: 'Add'
+    },
+    common: { yes: 'Yes', no: 'No', na: 'N/A', notEnoughData: 'Not enough data.' },
+    stats: {
+      globalTitle: 'Overall', bestTeamsTitle: 'Best teams (min 5 fights)', synergyTitle: 'Synergies (Top 5 pairs, min 8 fights)',
+      opponentsTitle: 'Opponent teams', topBeaten: 'Top 5 defeated', topLost: 'Top 5 that beat you', ranksTitle: 'Ranks',
+      totalFights: 'Total fights', globalWinrate: 'Global win rate', currentStreak: 'Current streak', lastTen: 'Last 10',
+      team: 'Team', wr: 'WR', fights: 'Fights', pair: 'Pair', deltaVsGlobal: 'Delta vs global', opponentTeam: 'Opponent team',
+      wins: 'Wins', losses: 'Losses', bestRank: 'Best rank reached', wrVsStronger: 'WR vs stronger', wrVsLower: 'WR vs lower'
+    },
+    actions: { export: 'Export JSON', import: 'Import JSON', clear: 'Clear history' },
+    messages: {
+      teamNeedChampions: '{label}: add between 1 and 4 champions.', teamMaxChampions: '{label}: maximum 4 champions.', teamInvalid: '{label} is invalid.',
+      playerTeam: 'Player team', playerRankRequired: 'Player rank is required.', winRequired: 'Please indicate whether the fight is a win or a loss.',
+      lockImpossible: 'Cannot lock team: {error}', importedJsonMustArray: 'Imported JSON must be an array of fights.',
+      importImpossible: 'Import failed: {error}', historyAlreadyEmpty: 'History is already empty.',
+      clearConfirm: 'Delete all fight history? Saved champions will be kept.'
+    },
+    ranks: { bronze: 'Bronze', silver: 'Silver', gold: 'Gold', platinum: 'Platinum' }
+  },
+};
+
+let currentLanguage = loadLanguage();
+
+function loadLanguage() {
+  const saved = localStorage.getItem(LANGUAGE_KEY);
+  return saved && translations[saved] ? saved : 'fr';
+}
+
+function saveLanguage(lang) {
+  localStorage.setItem(LANGUAGE_KEY, lang);
+}
+
+function t(path, vars = {}) {
+  const parts = path.split('.');
+  let value = translations[currentLanguage];
+  for (const part of parts) {
+    value = value?.[part];
+  }
+  if (typeof value !== 'string') {
+    return path;
+  }
+  return Object.entries(vars).reduce((text, [key, val]) => text.replaceAll(`{${key}}`, String(val)), value);
+}
+
+function applyTranslations() {
+  document.documentElement.lang = currentLanguage;
+  document.title = t('pageTitle');
+
+  document.querySelectorAll('[data-i18n]').forEach((el) => {
+    el.textContent = t(el.dataset.i18n);
+  });
+
+  document.querySelectorAll('[data-i18n-placeholder]').forEach((el) => {
+    el.placeholder = t(el.dataset.i18nPlaceholder);
+  });
+
+  renderAllStats();
+}
 
 function titleCase(value) {
   return value
@@ -38,13 +136,13 @@ function parseTeam(input) {
 
 function validateTeam(team, label, required) {
   if (team.length === 0 && required) {
-    throw new Error(`${label} : ajoute entre 1 et 4 champions.`);
+    throw new Error(t('messages.teamNeedChampions', { label }));
   }
   if (team.length > 4) {
-    throw new Error(`${label} : maximum 4 champions.`);
+    throw new Error(t('messages.teamMaxChampions', { label }));
   }
   if (!required && team.length !== 0 && team.length < 1) {
-    throw new Error(`${label} invalide.`);
+    throw new Error(t('messages.teamInvalid', { label }));
   }
 }
 
@@ -111,20 +209,20 @@ function parseRank(value) {
 
 function rankToStr(rankInt) {
   if (!rankInt || rankInt < 1) {
-    return 'N/A';
+    return t('common.na');
   }
 
   const roman = ['', 'I', 'II', 'III', 'IV', 'V'];
   if (rankInt <= 4) {
-    return `Bronze ${roman[rankInt]}`;
+    return `${t('ranks.bronze')} ${roman[rankInt]}`;
   }
   if (rankInt <= 8) {
-    return `Silver ${roman[rankInt - 4]}`;
+    return `${t('ranks.silver')} ${roman[rankInt - 4]}`;
   }
   if (rankInt <= 13) {
-    return `Gold ${roman[rankInt - 8]}`;
+    return `${t('ranks.gold')} ${roman[rankInt - 8]}`;
   }
-  return rankInt === 14 ? 'Platinum' : `Platinum +${rankInt - 14}`;
+  return rankInt === 14 ? t('ranks.platinum') : `${t('ranks.platinum')} +${rankInt - 14}`;
 }
 
 function loadFights() {
@@ -361,7 +459,7 @@ function computeCurrentStreak(fights) {
 
 function buildTable(headers, rows) {
   if (!rows.length) {
-    return '<p class="empty">Pas assez de données.</p>';
+    return `<p class="empty">${t('common.notEnoughData')}</p>`;
   }
 
   const thead = `<thead><tr>${headers.map((h) => `<th>${h}</th>`).join('')}</tr></thead>`;
@@ -379,10 +477,10 @@ function renderGlobalStats(fights) {
   const lastTenWr = computeWinrate(lastTen);
 
   document.getElementById('global-stats').innerHTML = `
-    <div class="stat-item"><span class="label">Total combats</span><div class="value">${total}</div></div>
-    <div class="stat-item"><span class="label">Winrate global</span><div class="value">${winrate.toFixed(1)}%</div></div>
-    <div class="stat-item"><span class="label">Streak actuelle</span><div class="value">${streak}</div></div>
-    <div class="stat-item"><span class="label">Derniers 10</span><div class="value">${lastTenWr.toFixed(1)}%</div></div>
+    <div class="stat-item"><span class="label">${t('stats.totalFights')}</span><div class="value">${total}</div></div>
+    <div class="stat-item"><span class="label">${t('stats.globalWinrate')}</span><div class="value">${winrate.toFixed(1)}%</div></div>
+    <div class="stat-item"><span class="label">${t('stats.currentStreak')}</span><div class="value">${streak}</div></div>
+    <div class="stat-item"><span class="label">${t('stats.lastTen')}</span><div class="value">${lastTenWr.toFixed(1)}%</div></div>
   `;
 }
 
@@ -410,7 +508,7 @@ function renderBestTeams(fights) {
     .sort((a, b) => b.wr - a.wr || b.count - a.count)
     .map((entry) => [entry.team, `${entry.wr.toFixed(1)}%`, entry.count]);
 
-  document.getElementById('best-teams').innerHTML = buildTable(['Team', 'WR', 'Combats'], rows);
+  document.getElementById('best-teams').innerHTML = buildTable([t('stats.team'), t('stats.wr'), t('stats.fights')], rows);
 }
 
 function renderSynergies(fights) {
@@ -446,7 +544,7 @@ function renderSynergies(fights) {
     .map((entry) => [entry.pair, `${entry.wr.toFixed(1)}%`, `${entry.delta >= 0 ? '+' : ''}${entry.delta.toFixed(1)}%`, entry.fights]);
 
   document.getElementById('synergy-stats').innerHTML = buildTable(
-    ['Paire', 'WR', 'Delta vs global', 'Combats'],
+    [t('stats.pair'), t('stats.wr'), t('stats.deltaVsGlobal'), t('stats.fights')],
     rows,
   );
 }
@@ -485,8 +583,8 @@ function renderOpponentStats(fights) {
     .slice(0, 5)
     .map((entry) => [entry.team, entry.losses]);
 
-  document.getElementById('opponents-beaten').innerHTML = buildTable(['Team adverse', 'Victoires'], beatenRows);
-  document.getElementById('opponents-lost').innerHTML = buildTable(['Team adverse', 'Défaites'], lostRows);
+  document.getElementById('opponents-beaten').innerHTML = buildTable([t('stats.opponentTeam'), t('stats.wins')], beatenRows);
+  document.getElementById('opponents-lost').innerHTML = buildTable([t('stats.opponentTeam'), t('stats.losses')], lostRows);
 }
 
 function renderRankStats(fights) {
@@ -513,13 +611,13 @@ function renderRankStats(fights) {
 
   document.getElementById('rank-stats').innerHTML = `
     <div class="stats-grid">
-      <div class="stat-item"><span class="label">Meilleur rank atteint</span><div class="value">${
-        bestRank ? rankToStr(bestRank) : 'N/A'
+      <div class="stat-item"><span class="label">${t('stats.bestRank')}</span><div class="value">${
+        bestRank ? rankToStr(bestRank) : t('common.na')
       }</div></div>
-      <div class="stat-item"><span class="label">WR vs plus fort</span><div class="value">${wrVsStronger.toFixed(
+      <div class="stat-item"><span class="label">${t('stats.wrVsStronger')}</span><div class="value">${wrVsStronger.toFixed(
         1,
       )}%</div></div>
-      <div class="stat-item"><span class="label">WR vs plus faible</span><div class="value">${wrVsLower.toFixed(
+      <div class="stat-item"><span class="label">${t('stats.wrVsLower')}</span><div class="value">${wrVsLower.toFixed(
         1,
       )}%</div></div>
     </div>
@@ -559,18 +657,18 @@ form.addEventListener('submit', (event) => {
     const lockData = loadPlayerTeamLock();
     const playerTeam = lockData.locked ? lockData.team : parseTeam(playerTeamInput.value);
     const opponentTeam = parseTeam(opponentTeamInput.value);
-    validateTeam(playerTeam, 'Team joueur', true);
+    validateTeam(playerTeam, t('messages.playerTeam'), true);
     if (opponentTeamInput.value.trim()) {
-      validateTeam(opponentTeam, 'Team adverse', true);
+      validateTeam(opponentTeam, t('stats.opponentTeam'), true);
     }
 
     if (!playerRankInput.value.trim()) {
-      throw new Error('Rank joueur obligatoire.');
+      throw new Error(t('messages.playerRankRequired'));
     }
 
     const winChoice = form.querySelector('input[name="win"]:checked');
     if (!winChoice) {
-      throw new Error('Indique si le combat est une victoire ou une défaite.');
+      throw new Error(t('messages.winRequired'));
     }
 
     upsertChampionPoolFromTeams([playerTeam, opponentTeam]);
@@ -612,14 +710,14 @@ lockPlayerTeamInput.addEventListener('change', () => {
 
   try {
     const team = parseTeam(playerTeamInput.value);
-    validateTeam(team, 'Team joueur', true);
+    validateTeam(team, t('messages.playerTeam'), true);
     const normalizedTeam = team.map(titleCase);
     savePlayerTeamLock({ locked: true, team: normalizedTeam });
     playerTeamInput.value = teamToInputValue(normalizedTeam);
     playerTeamInput.readOnly = true;
   } catch (error) {
     lockPlayerTeamInput.checked = false;
-    formError.textContent = `Impossible de verrouiller : ${error.message}`;
+    formError.textContent = t('messages.lockImpossible', { error: error.message });
   }
 });
 
@@ -674,12 +772,12 @@ importFileInput.addEventListener('change', async (event) => {
     const text = await file.text();
     const parsed = JSON.parse(text);
     if (!Array.isArray(parsed)) {
-      throw new Error('Le JSON importé doit être un tableau de combats.');
+      throw new Error(t('messages.importedJsonMustArray'));
     }
     saveFights(parsed);
     renderAllStats();
   } catch (error) {
-    formError.textContent = `Import impossible : ${error.message}`;
+    formError.textContent = t('messages.importImpossible', { error: error.message });
   } finally {
     importFileInput.value = '';
   }
@@ -688,12 +786,12 @@ importFileInput.addEventListener('change', async (event) => {
 clearFightsBtn.addEventListener('click', () => {
   const hasFights = loadFights().length > 0;
   if (!hasFights) {
-    formError.textContent = 'Historique déjà vide.';
+    formError.textContent = t('messages.historyAlreadyEmpty');
     return;
   }
 
   const confirmReset = window.confirm(
-    "Supprimer tout l'historique de combat ? Les champions sauvegardés seront conservés.",
+    t('messages.clearConfirm'),
   );
 
   if (!confirmReset) {
@@ -705,5 +803,20 @@ clearFightsBtn.addEventListener('click', () => {
   renderAllStats();
 });
 
-renderAllStats();
+
+if (languageSelect) {
+  languageSelect.value = currentLanguage;
+  languageSelect.addEventListener('change', (event) => {
+    const nextLanguage = event.target.value;
+    if (!translations[nextLanguage]) {
+      return;
+    }
+    currentLanguage = nextLanguage;
+    saveLanguage(nextLanguage);
+    formError.textContent = '';
+    applyTranslations();
+  });
+}
+
+applyTranslations();
 void restoreFromBackupIfNeeded();

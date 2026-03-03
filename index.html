@@ -9,102 +9,113 @@
   <body>
     <main class="container">
       <header class="app-header">
-        <h1>Raid Arena Tracker - Classic 4v4</h1>
-        <p class="subtitle">Suivi local de tes combats (stockage 100% navigateur)</p>
-        <p class="subtitle">
+        <div class="header-top-row">
+          <h1 data-i18n="app.title">Raid Arena Tracker - Classic 4v4</h1>
+          <label class="lang-switcher" for="language-select">
+            <span data-i18n="app.language">Langue</span>
+            <select id="language-select" aria-label="Choix de langue">
+              <option value="fr">Français</option>
+              <option value="en">English</option>
+            </select>
+          </label>
+        </div>
+        <p class="subtitle" data-i18n="app.subtitle">Suivi local de tes combats (stockage 100% navigateur)</p>
+        <p class="subtitle" data-i18n="app.backupInfo">
           Sauvegarde automatique dans le profil navigateur Windows (localStorage + backup interne)
         </p>
       </header>
 
       <section class="card" aria-labelledby="add-fight-title">
-        <h2 id="add-fight-title">Ajouter combat</h2>
+        <h2 id="add-fight-title" data-i18n="form.title">Ajouter combat</h2>
         <form id="fight-form" novalidate>
           <div class="form-grid">
             <label>
-              Team joueur (1 à 4 champions)
+              <span data-i18n="form.playerTeamLabel">Team joueur (1 à 4 champions)</span>
               <input
                 type="text"
                 id="player-team"
                 required
                 list="champion-options"
                 placeholder="Arbiter, Duchess Lilitu, Mithrala, Rotos"
+                data-i18n-placeholder="form.playerTeamPlaceholder"
               />
               <div class="inline-option">
                 <label class="checkbox-label">
                   <input type="checkbox" id="lock-player-team" />
-                  Verrouiller mon équipe (réutilisée automatiquement)
+                  <span data-i18n="form.lockTeam">Verrouiller mon équipe (réutilisée automatiquement)</span>
                 </label>
               </div>
             </label>
 
             <label>
-              Team adverse (optionnel, 1 à 4)
+              <span data-i18n="form.opponentTeamLabel">Team adverse (optionnel, 1 à 4)</span>
               <input
                 type="text"
                 id="opponent-team"
                 list="champion-options"
                 placeholder="Siphi, Rotos"
+                data-i18n-placeholder="form.opponentTeamPlaceholder"
               />
             </label>
 
             <label>
-              Rank joueur
-              <input type="text" id="player-rank" required placeholder="G3, Plat, S1, B4" />
+              <span data-i18n="form.playerRankLabel">Rank joueur</span>
+              <input type="text" id="player-rank" required placeholder="G3, Plat, S1, B4" data-i18n-placeholder="form.playerRankPlaceholder" />
             </label>
 
             <label>
-              Rank adverse (optionnel)
-              <input type="text" id="opponent-rank" placeholder="G5, Plat" />
+              <span data-i18n="form.opponentRankLabel">Rank adverse (optionnel)</span>
+              <input type="text" id="opponent-rank" placeholder="G5, Plat" data-i18n-placeholder="form.opponentRankPlaceholder" />
             </label>
           </div>
 
           <fieldset class="radio-group">
-            <legend>Victoire ?</legend>
-            <label><input type="radio" name="win" value="yes" required /> Oui</label>
-            <label><input type="radio" name="win" value="no" /> Non</label>
+            <legend data-i18n="form.winLegend">Victoire ?</legend>
+            <label><input type="radio" name="win" value="yes" required /> <span data-i18n="common.yes">Oui</span></label>
+            <label><input type="radio" name="win" value="no" /> <span data-i18n="common.no">Non</span></label>
           </fieldset>
 
           <p id="form-error" class="error" role="alert" aria-live="polite"></p>
-          <button type="submit" class="btn primary">Ajouter</button>
+          <button type="submit" class="btn primary" data-i18n="form.submit">Ajouter</button>
         </form>
         <datalist id="champion-options"></datalist>
       </section>
 
       <section class="stats" aria-live="polite">
         <div class="card">
-          <h2>Global</h2>
+          <h2 data-i18n="stats.globalTitle">Global</h2>
           <div id="global-stats" class="stats-grid"></div>
         </div>
 
         <div class="card">
-          <h2>Meilleures teams (min 5 combats)</h2>
+          <h2 data-i18n="stats.bestTeamsTitle">Meilleures teams (min 5 combats)</h2>
           <div id="best-teams"></div>
         </div>
 
         <div class="card">
-          <h2>Synergies (Top 5 paires, min 8 combats)</h2>
+          <h2 data-i18n="stats.synergyTitle">Synergies (Top 5 paires, min 8 combats)</h2>
           <div id="synergy-stats"></div>
         </div>
 
         <div class="card">
-          <h2>Teams adverses</h2>
-          <h3>Top 5 battues</h3>
+          <h2 data-i18n="stats.opponentsTitle">Teams adverses</h2>
+          <h3 data-i18n="stats.topBeaten">Top 5 battues</h3>
           <div id="opponents-beaten"></div>
-          <h3>Top 5 qui te battent</h3>
+          <h3 data-i18n="stats.topLost">Top 5 qui te battent</h3>
           <div id="opponents-lost"></div>
         </div>
 
         <div class="card">
-          <h2>Ranks</h2>
+          <h2 data-i18n="stats.ranksTitle">Ranks</h2>
           <div id="rank-stats"></div>
         </div>
       </section>
 
       <section class="footer-actions card">
-        <button id="export-btn" class="btn">Exporter JSON</button>
-        <label class="btn file-btn" for="import-file">Importer JSON</label>
+        <button id="export-btn" class="btn" data-i18n="actions.export">Exporter JSON</button>
+        <label class="btn file-btn" for="import-file" data-i18n="actions.import">Importer JSON</label>
         <input id="import-file" type="file" accept="application/json" />
-        <button id="clear-fights-btn" class="btn danger">Nettoyer l'historique</button>
+        <button id="clear-fights-btn" class="btn danger" data-i18n="actions.clear">Nettoyer l'historique</button>
       </section>
     </main>
 
