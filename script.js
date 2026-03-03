@@ -238,10 +238,10 @@ function fillTeamSlots(inputs, team) {
 }
 
 function getFilteredChampions(token = '') {
-  const normalizedToken = titleCase(token.trim());
+  const normalizedToken = token.trim().toLocaleLowerCase();
   const champions = loadChampionPool().sort((a, b) => a.localeCompare(b));
   return normalizedToken
-    ? champions.filter((champion) => champion.startsWith(normalizedToken))
+    ? champions.filter((champion) => champion.toLocaleLowerCase().includes(normalizedToken))
     : champions;
 }
 
