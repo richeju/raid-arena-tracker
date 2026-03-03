@@ -51,6 +51,7 @@ const translations = {
     actions: { syncChampions: 'Mettre à jour les champions (web)', export: 'Exporter JSON', import: 'Importer JSON', clear: "Nettoyer l'historique" },
     messages: {
       teamNeedChampions: '{label} : ajoute entre 1 et 4 champions.', teamMaxChampions: '{label} : maximum 4 champions.', teamInvalid: '{label} invalide.',
+      unknownChampions: '{label} : champions inconnus ({names}). Utilise uniquement les champions synchronisés.',
       playerTeam: 'Team joueur', winRequired: 'Indique si le combat est une victoire ou une défaite.',
       lockImpossible: 'Impossible de verrouiller : {error}', importedJsonMustArray: 'Le JSON importé doit être un tableau de combats.',
       importImpossible: 'Import impossible : {error}', historyAlreadyEmpty: 'Historique déjà vide.',
@@ -81,6 +82,7 @@ const translations = {
     actions: { syncChampions: 'Update champions from web', export: 'Export JSON', import: 'Import JSON', clear: 'Clear history' },
     messages: {
       teamNeedChampions: '{label}: add between 1 and 4 champions.', teamMaxChampions: '{label}: maximum 4 champions.', teamInvalid: '{label} is invalid.',
+      unknownChampions: '{label}: unknown champions ({names}). Use synced champions only.',
       playerTeam: 'Player team', winRequired: 'Please indicate whether the fight is a win or a loss.',
       lockImpossible: 'Cannot lock team: {error}', importedJsonMustArray: 'Imported JSON must be an array of fights.',
       importImpossible: 'Import failed: {error}', historyAlreadyEmpty: 'History is already empty.',
@@ -152,6 +154,18 @@ function validateTeam(team, label, required) {
   }
   if (!required && team.length !== 0 && team.length < 1) {
     throw new Error(t('messages.teamInvalid', { label }));
+  }
+}
+
+function validateKnownChampions(team, label) {
+  if (!team.length) {
+    return;
+  }
+
+  const knownChampions = new Set(loadChampionPool());
+  const unknownChampions = team.filter((champion) => !knownChampions.has(champion));
+  if (unknownChampions.length) {
+    throw new Error(t('messages.unknownChampions', { label, names: unknownChampions.join(', ') }));
   }
 }
 
@@ -324,27 +338,6 @@ window.addEventListener('scroll', () => {
     showAutocompleteDropdown(activeAutocompleteInput);
   }
 }, true);
-
-function upsertChampionPoolFromTeams(teams) {
-  const existing = new Set(loadChampionPool());
-
-  teams
-    .flat()
-    .map(titleCase)
-    .filter(Boolean)
-    .forEach((champion) => existing.add(champion));
-
-  saveChampionPool([...existing].sort((a, b) => a.localeCompare(b)));
-}
-
-function upsertChampionPoolFromSlotInput(input) {
-  const championName = titleCase(input.value.trim());
-  if (!championName) {
-    return;
-  }
-
-  upsertChampionPoolFromTeams([[championName]]);
-}
 
 function saveFights(fights) {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(fights));
@@ -550,14 +543,14 @@ form.addEventListener('submit', (event) => {
     const opponentTeam = parseTeamFromSlots(opponentTeamSlots);
     validateTeam(playerTeam, t('messages.playerTeam'), true);
     validateTeam(opponentTeam, t('stats.opponentTeam'), false);
+    validateKnownChampions(playerTeam, t('messages.playerTeam'));
+    validateKnownChampions(opponentTeam, t('stats.opponentTeam'));
 
 
     const winChoice = form.querySelector('input[name="win"]:checked');
     if (!winChoice) {
       throw new Error(t('messages.winRequired'));
     }
-
-    upsertChampionPoolFromTeams([playerTeam, opponentTeam]);
 
     const fights = loadFights();
     fights.push({
@@ -599,6 +592,7 @@ lockPlayerTeamInput.addEventListener('change', () => {
   try {
     const team = parseTeamFromSlots(playerTeamSlots);
     validateTeam(team, t('messages.playerTeam'), true);
+    validateKnownChampions(team, t('messages.playerTeam'));
     const normalizedTeam = team.map(titleCase);
     savePlayerTeamLock({ locked: true, team: normalizedTeam });
     fillTeamSlots(playerTeamSlots, normalizedTeam);
@@ -633,7 +627,6 @@ lockPlayerTeamInput.addEventListener('change', () => {
 
     event.preventDefault();
     slot.value = titleCase(slot.value.trim());
-    upsertChampionPoolFromSlotInput(slot);
     showAutocompleteDropdown(slot);
   });
 
